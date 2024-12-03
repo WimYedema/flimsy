@@ -24,6 +24,8 @@ SOFTWARE.
 
 'use strict';
 
+import './style.css'
+import * as dat from 'dat.gui';
 // Simulation section
 
 const canvas = document.getElementsByTagName('canvas')[0];
