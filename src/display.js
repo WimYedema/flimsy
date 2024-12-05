@@ -28,3 +28,10 @@ export const blit = (() => {
         gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
     }
 })();
+
+function CHECK_FRAMEBUFFER_STATUS () {
+    let status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    if (status != gl.FRAMEBUFFER_COMPLETE)
+        console.trace("Framebuffer error: " + status);
+}
+
