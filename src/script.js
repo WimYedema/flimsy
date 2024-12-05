@@ -34,10 +34,6 @@ import {default as colorFragmentShaderCode} from './shaders/color.frag';
 import {default as checkerboardFragmentShaderCode} from './shaders/checkerboard.frag';
 import {default as displayFragmentShaderCode} from './shaders/display.frag';
 
-// import {default as sunraysMaskFragmentShaderCode} from './shaders/sunraysMask.frag';
-// import {default as sunraysFragmentShaderCode} from './shaders/sunrays.frag';
-
-import {default as splatFragmentShaderCode} from './shaders/splat.frag';
 import {default as advectionFragmentShaderCode} from './shaders/advection.frag';
 import {default as divergenceFragmentShaderCode} from './shaders/divergence.frag';
 import {default as curlFragmentShaderCode} from './shaders/curl.frag';
@@ -47,17 +43,18 @@ import {default as gradientFragmentShaderCode} from './shaders/gradient.frag';
 
 import { baseVertexShader, compileShader } from './shaders.js';
 
-import {canvas, gl, ext, getResolution, resizeCanvas, scaleByPixelRatio} from './webgl.js'
+import {canvas, gl, ext, resizeCanvas, scaleByPixelRatio} from './webgl.js'
 import {Program } from './program.js';
-import {createFBO} from './fbo.js'
-import { createDoubleFBO, resizeDoubleFBO } from './double_fbo.js';
 import { blit } from './display.js';
 import { Material } from './material.js';
 import { captureScreenshot } from './screenshot.js';
 
 import { initBloomFramebuffers, applyBloom, bloom } from './bloom.js';
 import { initSunraysFramebuffers, applySunrays, sunrays, sunraysTemp } from './sunrays.js';
+import { splatPointer, multipleSplats } from './splat.js';
 import {config} from './config.js';
+import { dye, velocity, divergence, curl, pressure, initFramebuffers } from './fluid.js';
+import { generateColor } from './color.js';
 
 // Simulation section
 
@@ -138,8 +135,6 @@ const checkerboardShader = compileShader(gl.FRAGMENT_SHADER, checkerboardFragmen
 
 const displayShaderSource = displayFragmentShaderCode;
 
-const splatShader = compileShader(gl.FRAGMENT_SHADER, splatFragmentShaderCode);
-
 const advectionShader = compileShader(gl.FRAGMENT_SHADER, advectionFragmentShaderCode,
     ext.supportLinearFiltering ? null : ['MANUAL_FILTERING']
 );
@@ -150,19 +145,12 @@ const vorticityShader = compileShader(gl.FRAGMENT_SHADER, vorticityFragmentShade
 const pressureShader = compileShader(gl.FRAGMENT_SHADER, pressureFragmentShaderCode);
 const gradientSubtractShader = compileShader(gl.FRAGMENT_SHADER, gradientFragmentShaderCode);
 
-let dye;
-let velocity;
-let divergence;
-let curl;
-let pressure;
-
 let ditheringTexture = createTextureAsync('LDR_LLL1_0.png');
 
 const blurProgram            = new Program(blurVertexShader, blurShader);
 const clearProgram           = new Program(baseVertexShader, clearShader);
 const colorProgram           = new Program(baseVertexShader, colorShader);
 const checkerboardProgram    = new Program(baseVertexShader, checkerboardShader);
-const splatProgram           = new Program(baseVertexShader, splatShader);
 const advectionProgram       = new Program(baseVertexShader, advectionShader);
 const divergenceProgram      = new Program(baseVertexShader, divergenceShader);
 const curlProgram            = new Program(baseVertexShader, curlShader);
@@ -171,36 +159,6 @@ const pressureProgram        = new Program(baseVertexShader, pressureShader);
 const gradienSubtractProgram = new Program(baseVertexShader, gradientSubtractShader);
 
 const displayMaterial = new Material(baseVertexShader, displayShaderSource);
-
-function initFramebuffers () {
-    let simRes = getResolution(config.SIM_RESOLUTION);
-    let dyeRes = getResolution(config.DYE_RESOLUTION);
-
-    const texType = ext.halfFloatTexType;
-    const rgba    = ext.formatRGBA;
-    const rg      = ext.formatRG;
-    const r       = ext.formatR;
-    const filtering = ext.supportLinearFiltering ? gl.LINEAR : gl.NEAREST;
-
-    gl.disable(gl.BLEND);
-
-    if (dye == null)
-        dye = createDoubleFBO(dyeRes.width, dyeRes.height, rgba.internalFormat, rgba.format, texType, filtering);
-    else
-        dye = resizeDoubleFBO(dye, dyeRes.width, dyeRes.height, rgba.internalFormat, rgba.format, texType, filtering);
-
-    if (velocity == null)
-        velocity = createDoubleFBO(simRes.width, simRes.height, rg.internalFormat, rg.format, texType, filtering);
-    else
-        velocity = resizeDoubleFBO(velocity, simRes.width, simRes.height, rg.internalFormat, rg.format, texType, filtering);
-
-    divergence = createFBO      (simRes.width, simRes.height, r.internalFormat, r.format, texType, gl.NEAREST);
-    curl       = createFBO      (simRes.width, simRes.height, r.internalFormat, r.format, texType, gl.NEAREST);
-    pressure   = createDoubleFBO(simRes.width, simRes.height, r.internalFormat, r.format, texType, gl.NEAREST);
-
-    initBloomFramebuffers();
-    initSunraysFramebuffers();
-}
 
 function createTextureAsync (url) {
     let texture = gl.createTexture();
@@ -244,6 +202,8 @@ function updateKeywords () {
 
 updateKeywords();
 initFramebuffers();
+initBloomFramebuffers();
+initSunraysFramebuffers();
 multipleSplats(parseInt(Math.random() * 20) + 5);
 
 let lastUpdateTime = Date.now();
@@ -426,49 +386,6 @@ function blur (target, temp, iterations) {
     }
 }
 
-function splatPointer (pointer) {
-    let dx = pointer.deltaX * config.SPLAT_FORCE;
-    let dy = pointer.deltaY * config.SPLAT_FORCE;
-    splat(pointer.texcoordX, pointer.texcoordY, dx, dy, pointer.color);
-}
-
-function multipleSplats (amount) {
-    for (let i = 0; i < amount; i++) {
-        const color = generateColor();
-        color.r *= 10.0;
-        color.g *= 10.0;
-        color.b *= 10.0;
-        const x = Math.random();
-        const y = Math.random();
-        const dx = 1000 * (Math.random() - 0.5);
-        const dy = 1000 * (Math.random() - 0.5);
-        splat(x, y, dx, dy, color);
-    }
-}
-
-function splat (x, y, dx, dy, color) {
-    splatProgram.bind();
-    gl.uniform1i(splatProgram.uniforms.uTarget, velocity.read.attach(0));
-    gl.uniform1f(splatProgram.uniforms.aspectRatio, canvas.width / canvas.height);
-    gl.uniform2f(splatProgram.uniforms.point, x, y);
-    gl.uniform3f(splatProgram.uniforms.color, dx, dy, 0.0);
-    gl.uniform1f(splatProgram.uniforms.radius, correctRadius(config.SPLAT_RADIUS / 100.0));
-    blit(velocity.write);
-    velocity.swap();
-
-    gl.uniform1i(splatProgram.uniforms.uTarget, dye.read.attach(0));
-    gl.uniform3f(splatProgram.uniforms.color, color.r, color.g, color.b);
-    blit(dye.write);
-    dye.swap();
-}
-
-function correctRadius (radius) {
-    let aspectRatio = canvas.width / canvas.height;
-    if (aspectRatio > 1)
-        radius *= aspectRatio;
-    return radius;
-}
-
 canvas.addEventListener('mousedown', e => {
     let posX = scaleByPixelRatio(e.offsetX);
     let posY = scaleByPixelRatio(e.offsetY);
@@ -568,38 +485,6 @@ function correctDeltaY (delta) {
     let aspectRatio = canvas.width / canvas.height;
     if (aspectRatio > 1) delta /= aspectRatio;
     return delta;
-}
-
-function generateColor () {
-    let c = HSVtoRGB(Math.random(), 1.0, 1.0);
-    c.r *= 0.15;
-    c.g *= 0.15;
-    c.b *= 0.15;
-    return c;
-}
-
-function HSVtoRGB (h, s, v) {
-    let r, g, b, i, f, p, q, t;
-    i = Math.floor(h * 6);
-    f = h * 6 - i;
-    p = v * (1 - s);
-    q = v * (1 - f * s);
-    t = v * (1 - (1 - f) * s);
-
-    switch (i % 6) {
-        case 0: r = v, g = t, b = p; break;
-        case 1: r = q, g = v, b = p; break;
-        case 2: r = p, g = v, b = t; break;
-        case 3: r = p, g = q, b = v; break;
-        case 4: r = t, g = p, b = v; break;
-        case 5: r = v, g = p, b = q; break;
-    }
-
-    return {
-        r,
-        g,
-        b
-    };
 }
 
 function normalizeColor (input) {
