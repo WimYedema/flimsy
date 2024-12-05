@@ -27,34 +27,40 @@ SOFTWARE.
 import './style.css'
 import * as dat from 'dat.gui';
 
-import {default as baseVertexShaderCode} from './base.vert';
-import {default as blurVertexShaderCode} from './blur.vert';
-import {default as blurFragmentShaderCode} from './blur.frag';
-import {default as copyFragmentShaderCode} from './copy.frag';
-import {default as clearFragmentShaderCode} from './clear.frag';
-import {default as colorFragmentShaderCode} from './color.frag';
-import {default as checkerboardFragmentShaderCode} from './checkerboard.frag';
-import {default as displayFragmentShaderCode} from './display.frag';
+// import {default as baseVertexShaderCode} from './shaders/base.vert';
+import {default as blurVertexShaderCode} from './shaders/blur.vert';
+import {default as blurFragmentShaderCode} from './shaders/blur.frag';
+// import {default as copyFragmentShaderCode} from './shaders/copy.frag';
+import {default as clearFragmentShaderCode} from './shaders/clear.frag';
+import {default as colorFragmentShaderCode} from './shaders/color.frag';
+import {default as checkerboardFragmentShaderCode} from './shaders/checkerboard.frag';
+import {default as displayFragmentShaderCode} from './shaders/display.frag';
 
-import {default as bloomPrefilterFragmentShaderCode} from './bloomPrefilter.frag';
-import {default as bloomBlurFragmentShaderCode} from './bloomBlur.frag';
-import {default as bloomFinalFragmentShaderCode} from './bloomFinal.frag';
+import {default as bloomPrefilterFragmentShaderCode} from './shaders/bloomPrefilter.frag';
+import {default as bloomBlurFragmentShaderCode} from './shaders/bloomBlur.frag';
+import {default as bloomFinalFragmentShaderCode} from './shaders/bloomFinal.frag';
 
-import {default as sunraysMaskFragmentShaderCode} from './sunraysMask.frag';
-import {default as sunraysFragmentShaderCode} from './sunrays.frag';
+import {default as sunraysMaskFragmentShaderCode} from './shaders/sunraysMask.frag';
+import {default as sunraysFragmentShaderCode} from './shaders/sunrays.frag';
 
-import {default as splatFragmentShaderCode} from './splat.frag';
-import {default as advectionFragmentShaderCode} from './advection.frag';
-import {default as divergenceFragmentShaderCode} from './divergence.frag';
-import {default as curlFragmentShaderCode} from './curl.frag';
-import {default as vorticityFragmentShaderCode} from './vorticity.frag';
-import {default as pressureFragmentShaderCode} from './pressure.frag';
-import {default as gradientFragmentShaderCode} from './gradient.frag';
+import {default as splatFragmentShaderCode} from './shaders/splat.frag';
+import {default as advectionFragmentShaderCode} from './shaders/advection.frag';
+import {default as divergenceFragmentShaderCode} from './shaders/divergence.frag';
+import {default as curlFragmentShaderCode} from './shaders/curl.frag';
+import {default as vorticityFragmentShaderCode} from './shaders/vorticity.frag';
+import {default as pressureFragmentShaderCode} from './shaders/pressure.frag';
+import {default as gradientFragmentShaderCode} from './shaders/gradient.frag';
 
+import { baseVertexShader, compileShader } from './shaders.js';
+
+import {canvas, gl, ext, resizeCanvas, scaleByPixelRatio} from './webgl.js'
+import {createProgram, getUniforms, Program } from './program.js';
+import {createFBO, resizeFBO} from './fbo.js'
+import { blit } from './display.js';
 // Simulation section
 
-const canvas = document.getElementsByTagName('canvas')[0];
-resizeCanvas();
+// const canvas = document.getElementsByTagName('canvas')[0];
+// resizeCanvas();
 
 let config = {
     SIM_RESOLUTION: 128,
@@ -101,7 +107,7 @@ let pointers = [];
 let splatStack = [];
 pointers.push(new pointerPrototype());
 
-const { gl, ext } = getWebGLContext(canvas);
+// const { gl, ext } = getWebGLContext(canvas);
 
 if (isMobile()) {
     config.DYE_RESOLUTION = 512;
@@ -115,95 +121,95 @@ if (!ext.supportLinearFiltering) {
 
 startGUI();
 
-function getWebGLContext (canvas) {
-    const params = { alpha: true, depth: false, stencil: false, antialias: false, preserveDrawingBuffer: false };
+// function getWebGLContext (canvas) {
+//     const params = { alpha: true, depth: false, stencil: false, antialias: false, preserveDrawingBuffer: false };
 
-    let gl = canvas.getContext('webgl2', params);
-    const isWebGL2 = !!gl;
-    if (!isWebGL2)
-        gl = canvas.getContext('webgl', params) || canvas.getContext('experimental-webgl', params);
+//     let gl = canvas.getContext('webgl2', params);
+//     const isWebGL2 = !!gl;
+//     if (!isWebGL2)
+//         gl = canvas.getContext('webgl', params) || canvas.getContext('experimental-webgl', params);
 
-    let halfFloat;
-    let supportLinearFiltering;
-    if (isWebGL2) {
-        gl.getExtension('EXT_color_buffer_float');
-        supportLinearFiltering = gl.getExtension('OES_texture_float_linear');
-    } else {
-        halfFloat = gl.getExtension('OES_texture_half_float');
-        supportLinearFiltering = gl.getExtension('OES_texture_half_float_linear');
-    }
+//     let halfFloat;
+//     let supportLinearFiltering;
+//     if (isWebGL2) {
+//         gl.getExtension('EXT_color_buffer_float');
+//         supportLinearFiltering = gl.getExtension('OES_texture_float_linear');
+//     } else {
+//         halfFloat = gl.getExtension('OES_texture_half_float');
+//         supportLinearFiltering = gl.getExtension('OES_texture_half_float_linear');
+//     }
 
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+//     gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
-    const halfFloatTexType = isWebGL2 ? gl.HALF_FLOAT : halfFloat.HALF_FLOAT_OES;
-    let formatRGBA;
-    let formatRG;
-    let formatR;
+//     const halfFloatTexType = isWebGL2 ? gl.HALF_FLOAT : halfFloat.HALF_FLOAT_OES;
+//     let formatRGBA;
+//     let formatRG;
+//     let formatR;
 
-    if (isWebGL2)
-    {
-        formatRGBA = getSupportedFormat(gl, gl.RGBA16F, gl.RGBA, halfFloatTexType);
-        formatRG = getSupportedFormat(gl, gl.RG16F, gl.RG, halfFloatTexType);
-        formatR = getSupportedFormat(gl, gl.R16F, gl.RED, halfFloatTexType);
-    }
-    else
-    {
-        formatRGBA = getSupportedFormat(gl, gl.RGBA, gl.RGBA, halfFloatTexType);
-        formatRG = getSupportedFormat(gl, gl.RGBA, gl.RGBA, halfFloatTexType);
-        formatR = getSupportedFormat(gl, gl.RGBA, gl.RGBA, halfFloatTexType);
-    }
+//     if (isWebGL2)
+//     {
+//         formatRGBA = getSupportedFormat(gl, gl.RGBA16F, gl.RGBA, halfFloatTexType);
+//         formatRG = getSupportedFormat(gl, gl.RG16F, gl.RG, halfFloatTexType);
+//         formatR = getSupportedFormat(gl, gl.R16F, gl.RED, halfFloatTexType);
+//     }
+//     else
+//     {
+//         formatRGBA = getSupportedFormat(gl, gl.RGBA, gl.RGBA, halfFloatTexType);
+//         formatRG = getSupportedFormat(gl, gl.RGBA, gl.RGBA, halfFloatTexType);
+//         formatR = getSupportedFormat(gl, gl.RGBA, gl.RGBA, halfFloatTexType);
+//     }
 
-    // ga('send', 'event', isWebGL2 ? 'webgl2' : 'webgl', formatRGBA == null ? 'not supported' : 'supported');
+//     // ga('send', 'event', isWebGL2 ? 'webgl2' : 'webgl', formatRGBA == null ? 'not supported' : 'supported');
 
-    return {
-        gl,
-        ext: {
-            formatRGBA,
-            formatRG,
-            formatR,
-            halfFloatTexType,
-            supportLinearFiltering
-        }
-    };
-}
+//     return {
+//         gl,
+//         ext: {
+//             formatRGBA,
+//             formatRG,
+//             formatR,
+//             halfFloatTexType,
+//             supportLinearFiltering
+//         }
+//     };
+// }
 
-function getSupportedFormat (gl, internalFormat, format, type)
-{
-    if (!supportRenderTextureFormat(gl, internalFormat, format, type))
-    {
-        switch (internalFormat)
-        {
-            case gl.R16F:
-                return getSupportedFormat(gl, gl.RG16F, gl.RG, type);
-            case gl.RG16F:
-                return getSupportedFormat(gl, gl.RGBA16F, gl.RGBA, type);
-            default:
-                return null;
-        }
-    }
+// function getSupportedFormat (gl, internalFormat, format, type)
+// {
+//     if (!supportRenderTextureFormat(gl, internalFormat, format, type))
+//     {
+//         switch (internalFormat)
+//         {
+//             case gl.R16F:
+//                 return getSupportedFormat(gl, gl.RG16F, gl.RG, type);
+//             case gl.RG16F:
+//                 return getSupportedFormat(gl, gl.RGBA16F, gl.RGBA, type);
+//             default:
+//                 return null;
+//         }
+//     }
 
-    return {
-        internalFormat,
-        format
-    }
-}
+//     return {
+//         internalFormat,
+//         format
+//     }
+// }
 
-function supportRenderTextureFormat (gl, internalFormat, format, type) {
-    let texture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texImage2D(gl.TEXTURE_2D, 0, internalFormat, 4, 4, 0, format, type, null);
+// function supportRenderTextureFormat (gl, internalFormat, format, type) {
+//     let texture = gl.createTexture();
+//     gl.bindTexture(gl.TEXTURE_2D, texture);
+//     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+//     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+//     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+//     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+//     gl.texImage2D(gl.TEXTURE_2D, 0, internalFormat, 4, 4, 0, format, type, null);
 
-    let fbo = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+//     let fbo = gl.createFramebuffer();
+//     gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+//     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
 
-    let status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
-    return status == gl.FRAMEBUFFER_COMPLETE;
-}
+//     let status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+//     return status == gl.FRAMEBUFFER_COMPLETE;
+// }
 
 function startGUI () {
     var gui = new dat.GUI({ width: 300 });
@@ -341,67 +347,67 @@ class Material {
     }
 }
 
-class Program {
-    constructor (vertexShader, fragmentShader) {
-        this.uniforms = {};
-        this.program = createProgram(vertexShader, fragmentShader);
-        this.uniforms = getUniforms(this.program);
-    }
+// class Program {
+//     constructor (vertexShader, fragmentShader) {
+//         this.uniforms = {};
+//         this.program = createProgram(vertexShader, fragmentShader);
+//         this.uniforms = getUniforms(this.program);
+//     }
 
-    bind () {
-        gl.useProgram(this.program);
-    }
-}
+//     bind () {
+//         gl.useProgram(this.program);
+//     }
+// }
 
-function createProgram (vertexShader, fragmentShader) {
-    let program = gl.createProgram();
-    gl.attachShader(program, vertexShader);
-    gl.attachShader(program, fragmentShader);
-    gl.linkProgram(program);
+// function createProgram (vertexShader, fragmentShader) {
+//     let program = gl.createProgram();
+//     gl.attachShader(program, vertexShader);
+//     gl.attachShader(program, fragmentShader);
+//     gl.linkProgram(program);
 
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS))
-        console.trace(gl.getProgramInfoLog(program));
+//     if (!gl.getProgramParameter(program, gl.LINK_STATUS))
+//         console.trace(gl.getProgramInfoLog(program));
 
-    return program;
-}
+//     return program;
+// }
 
-function getUniforms (program) {
-    let uniforms = [];
-    let uniformCount = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
-    for (let i = 0; i < uniformCount; i++) {
-        let uniformName = gl.getActiveUniform(program, i).name;
-        uniforms[uniformName] = gl.getUniformLocation(program, uniformName);
-    }
-    return uniforms;
-}
+// function getUniforms (program) {
+//     let uniforms = [];
+//     let uniformCount = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+//     for (let i = 0; i < uniformCount; i++) {
+//         let uniformName = gl.getActiveUniform(program, i).name;
+//         uniforms[uniformName] = gl.getUniformLocation(program, uniformName);
+//     }
+//     return uniforms;
+// }
 
-function compileShader (type, source, keywords) {
-    source = addKeywords(source, keywords);
+// function compileShader (type, source, keywords) {
+//     source = addKeywords(source, keywords);
 
-    const shader = gl.createShader(type);
-    gl.shaderSource(shader, source);
-    gl.compileShader(shader);
+//     const shader = gl.createShader(type);
+//     gl.shaderSource(shader, source);
+//     gl.compileShader(shader);
 
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS))
-        console.trace(gl.getShaderInfoLog(shader));
+//     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS))
+//         console.trace(gl.getShaderInfoLog(shader));
 
-    return shader;
-};
+//     return shader;
+// };
 
-function addKeywords (source, keywords) {
-    if (keywords == null) return source;
-    let keywordsString = '';
-    keywords.forEach(keyword => {
-        keywordsString += '#define ' + keyword + '\n';
-    });
-    return keywordsString + source;
-}
+// function addKeywords (source, keywords) {
+//     if (keywords == null) return source;
+//     let keywordsString = '';
+//     keywords.forEach(keyword => {
+//         keywordsString += '#define ' + keyword + '\n';
+//     });
+//     return keywordsString + source;
+// }
 
-const baseVertexShader = compileShader(gl.VERTEX_SHADER, baseVertexShaderCode);
+// const baseVertexShader = compileShader(gl.VERTEX_SHADER, baseVertexShaderCode);
 const blurVertexShader = compileShader(gl.VERTEX_SHADER, blurVertexShaderCode);
 
 const blurShader = compileShader(gl.FRAGMENT_SHADER, blurFragmentShaderCode);
-const copyShader = compileShader(gl.FRAGMENT_SHADER, copyFragmentShaderCode);
+// const copyShader = compileShader(gl.FRAGMENT_SHADER, copyFragmentShaderCode);
 const clearShader = compileShader(gl.FRAGMENT_SHADER, clearFragmentShaderCode);
 const colorShader = compileShader(gl.FRAGMENT_SHADER, colorFragmentShaderCode);
 const checkerboardShader = compileShader(gl.FRAGMENT_SHADER, checkerboardFragmentShaderCode);
@@ -427,34 +433,34 @@ const vorticityShader = compileShader(gl.FRAGMENT_SHADER, vorticityFragmentShade
 const pressureShader = compileShader(gl.FRAGMENT_SHADER, pressureFragmentShaderCode);
 const gradientSubtractShader = compileShader(gl.FRAGMENT_SHADER, gradientFragmentShaderCode);
 
-const blit = (() => {
-    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, -1, 1, 1, 1, 1, -1]), gl.STATIC_DRAW);
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array([0, 1, 2, 0, 2, 3]), gl.STATIC_DRAW);
-    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(0);
+// const blit = (() => {
+//     gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+//     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, -1, 1, 1, 1, 1, -1]), gl.STATIC_DRAW);
+//     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
+//     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array([0, 1, 2, 0, 2, 3]), gl.STATIC_DRAW);
+//     gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+//     gl.enableVertexAttribArray(0);
 
-    return (target, clear = false) => {
-        if (target == null)
-        {
-            gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
-            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        }
-        else
-        {
-            gl.viewport(0, 0, target.width, target.height);
-            gl.bindFramebuffer(gl.FRAMEBUFFER, target.fbo);
-        }
-        if (clear)
-        {
-            gl.clearColor(0.0, 0.0, 0.0, 1.0);
-            gl.clear(gl.COLOR_BUFFER_BIT);
-        }
-        // CHECK_FRAMEBUFFER_STATUS();
-        gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
-    }
-})();
+//     return (target, clear = false) => {
+//         if (target == null)
+//         {
+//             gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+//             gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+//         }
+//         else
+//         {
+//             gl.viewport(0, 0, target.width, target.height);
+//             gl.bindFramebuffer(gl.FRAMEBUFFER, target.fbo);
+//         }
+//         if (clear)
+//         {
+//             gl.clearColor(0.0, 0.0, 0.0, 1.0);
+//             gl.clear(gl.COLOR_BUFFER_BIT);
+//         }
+//         // CHECK_FRAMEBUFFER_STATUS();
+//         gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+//     }
+// })();
 
 function CHECK_FRAMEBUFFER_STATUS () {
     let status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
@@ -475,7 +481,7 @@ let sunraysTemp;
 let ditheringTexture = createTextureAsync('LDR_LLL1_0.png');
 
 const blurProgram            = new Program(blurVertexShader, blurShader);
-const copyProgram            = new Program(baseVertexShader, copyShader);
+// const copyProgram            = new Program(baseVertexShader, copyShader);
 const clearProgram           = new Program(baseVertexShader, clearShader);
 const colorProgram           = new Program(baseVertexShader, colorShader);
 const checkerboardProgram    = new Program(baseVertexShader, checkerboardShader);
@@ -557,39 +563,39 @@ function initSunraysFramebuffers () {
     sunraysTemp = createFBO(res.width, res.height, r.internalFormat, r.format, texType, filtering);
 }
 
-function createFBO (w, h, internalFormat, format, type, param) {
-    gl.activeTexture(gl.TEXTURE0);
-    let texture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, param);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, param);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texImage2D(gl.TEXTURE_2D, 0, internalFormat, w, h, 0, format, type, null);
+// function createFBO (w, h, internalFormat, format, type, param) {
+//     gl.activeTexture(gl.TEXTURE0);
+//     let texture = gl.createTexture();
+//     gl.bindTexture(gl.TEXTURE_2D, texture);
+//     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, param);
+//     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, param);
+//     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+//     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+//     gl.texImage2D(gl.TEXTURE_2D, 0, internalFormat, w, h, 0, format, type, null);
 
-    let fbo = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
-    gl.viewport(0, 0, w, h);
-    gl.clear(gl.COLOR_BUFFER_BIT);
+//     let fbo = gl.createFramebuffer();
+//     gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+//     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+//     gl.viewport(0, 0, w, h);
+//     gl.clear(gl.COLOR_BUFFER_BIT);
 
-    let texelSizeX = 1.0 / w;
-    let texelSizeY = 1.0 / h;
+//     let texelSizeX = 1.0 / w;
+//     let texelSizeY = 1.0 / h;
 
-    return {
-        texture,
-        fbo,
-        width: w,
-        height: h,
-        texelSizeX,
-        texelSizeY,
-        attach (id) {
-            gl.activeTexture(gl.TEXTURE0 + id);
-            gl.bindTexture(gl.TEXTURE_2D, texture);
-            return id;
-        }
-    };
-}
+//     return {
+//         texture,
+//         fbo,
+//         width: w,
+//         height: h,
+//         texelSizeX,
+//         texelSizeY,
+//         attach (id) {
+//             gl.activeTexture(gl.TEXTURE0 + id);
+//             gl.bindTexture(gl.TEXTURE_2D, texture);
+//             return id;
+//         }
+//     };
+// }
 
 function createDoubleFBO (w, h, internalFormat, format, type, param) {
     let fbo1 = createFBO(w, h, internalFormat, format, type, param);
@@ -620,13 +626,13 @@ function createDoubleFBO (w, h, internalFormat, format, type, param) {
     }
 }
 
-function resizeFBO (target, w, h, internalFormat, format, type, param) {
-    let newFBO = createFBO(w, h, internalFormat, format, type, param);
-    copyProgram.bind();
-    gl.uniform1i(copyProgram.uniforms.uTexture, target.attach(0));
-    blit(newFBO);
-    return newFBO;
-}
+// function resizeFBO (target, w, h, internalFormat, format, type, param) {
+//     let newFBO = createFBO(w, h, internalFormat, format, type, param);
+//     copyProgram.bind();
+//     gl.uniform1i(copyProgram.uniforms.uTexture, target.attach(0));
+//     blit(newFBO);
+//     return newFBO;
+// }
 
 function resizeDoubleFBO (target, w, h, internalFormat, format, type, param) {
     if (target.width == w && target.height == h)
@@ -708,16 +714,16 @@ function calcDeltaTime () {
     return dt;
 }
 
-function resizeCanvas () {
-    let width = scaleByPixelRatio(canvas.clientWidth);
-    let height = scaleByPixelRatio(canvas.clientHeight);
-    if (canvas.width != width || canvas.height != height) {
-        canvas.width = width;
-        canvas.height = height;
-        return true;
-    }
-    return false;
-}
+// function resizeCanvas () {
+//     let width = scaleByPixelRatio(canvas.clientWidth);
+//     let height = scaleByPixelRatio(canvas.clientHeight);
+//     if (canvas.width != width || canvas.height != height) {
+//         canvas.width = width;
+//         canvas.height = height;
+//         return true;
+//     }
+//     return false;
+// }
 
 function updateColors (dt) {
     if (!config.COLORFUL) return;
@@ -1145,10 +1151,10 @@ function getTextureScale (texture, width, height) {
     };
 }
 
-function scaleByPixelRatio (input) {
-    let pixelRatio = window.devicePixelRatio || 1;
-    return Math.floor(input * pixelRatio);
-}
+// function scaleByPixelRatio (input) {
+//     let pixelRatio = window.devicePixelRatio || 1;
+//     return Math.floor(input * pixelRatio);
+// }
 
 function hashCode (s) {
     if (s.length == 0) return 0;
