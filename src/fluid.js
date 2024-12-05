@@ -65,9 +65,6 @@ export function initFramebuffers () {
     divergence = createFBO      (simRes.width, simRes.height, r.internalFormat, r.format, texType, gl.NEAREST);
     curl       = createFBO      (simRes.width, simRes.height, r.internalFormat, r.format, texType, gl.NEAREST);
     pressure   = createDoubleFBO(simRes.width, simRes.height, r.internalFormat, r.format, texType, gl.NEAREST);
-
-    // initBloomFramebuffers();
-    // initSunraysFramebuffers();
 }
 
 export function step (dt) {
