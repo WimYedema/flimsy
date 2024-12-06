@@ -29,18 +29,16 @@ import * as dat from 'dat.gui';
 
 import {default as colorFragmentShaderCode} from './shaders/color.frag';
 import {default as checkerboardFragmentShaderCode} from './shaders/checkerboard.frag';
-import {default as displayFragmentShaderCode} from './shaders/display.frag';
 
 import { baseVertexShader, compileShader } from './shaders.js';
 
-import {canvas, gl, ext, resizeCanvas, scaleByPixelRatio} from './webgl.js'
+import {canvas, gl, ext, resizeCanvas } from './webgl.js'
 import {Program } from './program.js';
-import { generateBuffer } from './display.js';
-import { Material } from './material.js';
+import { generateBuffer, updateKeywords, drawDisplay } from './display.js';
 import { captureScreenshot } from './screenshot.js';
 
 import { initBloomFramebuffers, applyBloom, bloom } from './bloom.js';
-import { initSunraysFramebuffers, applySunrays, sunrays, sunraysTemp } from './sunrays.js';
+import { initSunraysFramebuffers, applySunrays, sunrays } from './sunrays.js';
 import { splatPointer, multipleSplats } from './splat.js';
 import {config} from './config.js';
 import { dye, step, initFluidFramebuffers } from './fluid.js';
@@ -51,17 +49,15 @@ import { pointers } from './canvas.js';
 
 let splatStack = [];
 
-if (isMobile()) {
-    config.DYE_RESOLUTION = 512;
-}
-if (!ext.supportLinearFiltering) {
-    config.DYE_RESOLUTION = 512;
-    config.SHADING = false;
-    config.BLOOM = false;
-    config.SUNRAYS = false;
-}
+const colorShader = compileShader(gl.FRAGMENT_SHADER, colorFragmentShaderCode);
+const checkerboardShader = compileShader(gl.FRAGMENT_SHADER, checkerboardFragmentShaderCode);
 
-startGUI();
+const colorProgram           = new Program(baseVertexShader, colorShader);
+const checkerboardProgram    = new Program(baseVertexShader, checkerboardShader);
+
+let lastUpdateTime = Date.now();
+let colorUpdateTimer = 0.0;
+
 
 function startGUI () {
     var gui = new dat.GUI({ width: 300 });
@@ -102,71 +98,31 @@ function isMobile () {
     return /Mobi|Android/i.test(navigator.userAgent);
 }
 
-const colorShader = compileShader(gl.FRAGMENT_SHADER, colorFragmentShaderCode);
-const checkerboardShader = compileShader(gl.FRAGMENT_SHADER, checkerboardFragmentShaderCode);
-
-const displayShaderSource = displayFragmentShaderCode;
-
-let ditheringTexture = createTextureAsync('LDR_LLL1_0.png');
-
-const colorProgram           = new Program(baseVertexShader, colorShader);
-const checkerboardProgram    = new Program(baseVertexShader, checkerboardShader);
-
-const displayMaterial = new Material(baseVertexShader, displayShaderSource);
-
-function createTextureAsync (url) {
-    let texture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, 1, 1, 0, gl.RGB, gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255]));
-
-    let obj = {
-        texture,
-        width: 1,
-        height: 1,
-        attach (id) {
-            gl.activeTexture(gl.TEXTURE0 + id);
-            gl.bindTexture(gl.TEXTURE_2D, texture);
-            return id;
-        }
-    };
-
-    let image = new Image();
-    image.onload = () => {
-        obj.width = image.width;
-        obj.height = image.height;
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image);
-    };
-    image.src = url;
-
-    return obj;
-}
-
-function updateKeywords () {
-    let displayKeywords = [];
-    if (config.SHADING) displayKeywords.push("SHADING");
-    if (config.BLOOM) displayKeywords.push("BLOOM");
-    if (config.SUNRAYS) displayKeywords.push("SUNRAYS");
-    displayMaterial.setKeywords(displayKeywords);
-}
-
 function initFramebuffers () {
     initFluidFramebuffers();
     initBloomFramebuffers();
     initSunraysFramebuffers();
 }
 
-updateKeywords();
-initFramebuffers();
-multipleSplats(parseInt(Math.random() * 20) + 5);
-
-let lastUpdateTime = Date.now();
-let colorUpdateTimer = 0.0;
-update();
+function main() {
+    if (isMobile()) {
+        config.DYE_RESOLUTION = 512;
+    }
+    if (!ext.supportLinearFiltering) {
+        config.DYE_RESOLUTION = 512;
+        config.SHADING = false;
+        config.BLOOM = false;
+        config.SUNRAYS = false;
+    }
+    
+    startGUI();
+    
+    updateKeywords();
+    initFramebuffers();
+    multipleSplats(parseInt(Math.random() * 20) + 5);
+    
+    update();
+}
 
 function update () {
     const dt = calcDeltaTime();
@@ -246,25 +202,6 @@ function drawCheckerboard (target) {
     generateBuffer(target);
 }
 
-function drawDisplay (target) {
-    let width = target == null ? gl.drawingBufferWidth : target.width;
-    let height = target == null ? gl.drawingBufferHeight : target.height;
-
-    displayMaterial.bind();
-    if (config.SHADING)
-        gl.uniform2f(displayMaterial.uniforms.texelSize, 1.0 / width, 1.0 / height);
-    gl.uniform1i(displayMaterial.uniforms.uTexture, dye.read.attach(0));
-    if (config.BLOOM) {
-        gl.uniform1i(displayMaterial.uniforms.uBloom, bloom.attach(1));
-        gl.uniform1i(displayMaterial.uniforms.uDithering, ditheringTexture.attach(2));
-        let scale = getTextureScale(ditheringTexture, width, height);
-        gl.uniform2f(displayMaterial.uniforms.ditherScale, scale.x, scale.y);
-    }
-    if (config.SUNRAYS)
-        gl.uniform1i(displayMaterial.uniforms.uSunrays, sunrays.attach(3));
-    generateBuffer(target);
-}
-
 function normalizeColor (input) {
     let output = {
         r: input.r / 255,
@@ -280,9 +217,4 @@ function wrap (value, min, max) {
     return (value - min) % range + min;
 }
 
-function getTextureScale (texture, width, height) {
-    return {
-        x: width / texture.width,
-        y: height / texture.height
-    };
-}
+main();

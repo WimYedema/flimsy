@@ -18,7 +18,7 @@ const sunraysMaskShader = compileShader(gl.FRAGMENT_SHADER, sunraysMaskFragmentS
 const sunraysShader = compileShader(gl.FRAGMENT_SHADER, sunraysFragmentShaderCode);
 
 export let sunrays;
-export let sunraysTemp;
+let sunraysTemp;
 
 const blurProgram            = new Program(blurVertexShader, blurShader);
 
