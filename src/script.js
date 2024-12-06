@@ -34,8 +34,7 @@ import { baseVertexShader, compileShader } from './shaders.js';
 
 import {canvas, gl, ext, resizeCanvas } from './webgl.js'
 import {Program } from './program.js';
-import { generateBuffer, updateKeywords, drawDisplay } from './display.js';
-import { captureScreenshot } from './screenshot.js';
+import { generateBuffer, updateKeywords, drawDisplay, initDisplay } from './display.js';
 
 import { initBloomFramebuffers, applyBloom, bloom } from './bloom.js';
 import { initSunraysFramebuffers, applySunrays, sunrays } from './sunrays.js';
@@ -46,8 +45,6 @@ import { generateColor } from './color.js';
 import { pointers } from './canvas.js';
 
 // Simulation section
-
-let splatStack = [];
 
 const colorShader = compileShader(gl.FRAGMENT_SHADER, colorFragmentShaderCode);
 const checkerboardShader = compileShader(gl.FRAGMENT_SHADER, checkerboardFragmentShaderCode);
@@ -70,11 +67,6 @@ function startGUI () {
     gui.add(config, 'SPLAT_RADIUS', 0.01, 1.0).name('splat radius');
     gui.add(config, 'SHADING').name('shading').onFinishChange(updateKeywords);
     gui.add(config, 'COLORFUL').name('colorful');
-    gui.add(config, 'PAUSED').name('paused').listen();
-
-    gui.add({ fun: () => {
-        splatStack.push(parseInt(Math.random() * 20) + 5);
-    } }, 'fun').name('Random splats');
 
     let bloomFolder = gui.addFolder('Bloom');
     bloomFolder.add(config, 'BLOOM').name('enabled').onFinishChange(updateKeywords);
@@ -88,7 +80,6 @@ function startGUI () {
     let captureFolder = gui.addFolder('Capture');
     captureFolder.addColor(config, 'BACK_COLOR').name('background color');
     captureFolder.add(config, 'TRANSPARENT').name('transparent');
-    captureFolder.add({ fun: captureScreenshot }, 'fun').name('take screenshot');
 
     if (isMobile())
         gui.close();
@@ -116,10 +107,10 @@ function main() {
     }
     
     startGUI();
-    
+    initDisplay();
     updateKeywords();
     initFramebuffers();
-    multipleSplats(parseInt(Math.random() * 20) + 5);
+    // multipleSplats(parseInt(Math.random() * 20) + 5);
     
     update();
 }
@@ -130,9 +121,8 @@ function update () {
         initFramebuffers();
     updateColors(dt);
     applyInputs();
-    if (!config.PAUSED)
-        step(dt);
-    render(null);
+    step(dt);
+    render();
     requestAnimationFrame(update);
 }
 
@@ -157,9 +147,6 @@ function updateColors (dt) {
 }
 
 function applyInputs () {
-    if (splatStack.length > 0)
-        multipleSplats(splatStack.pop());
-
     pointers.forEach(p => {
         if (p.moved) {
             p.moved = false;
@@ -168,38 +155,34 @@ function applyInputs () {
     });
 }
 
-function render (target) {
+function render () {
     if (config.BLOOM)
         applyBloom(dye.read, bloom);
     if (config.SUNRAYS) {
         applySunrays(dye.read, dye.write, sunrays);
     }
 
-    if (target == null || !config.TRANSPARENT) {
-        gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-        gl.enable(gl.BLEND);
-    }
-    else {
-        gl.disable(gl.BLEND);
-    }
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    gl.enable(gl.BLEND);
 
-    if (!config.TRANSPARENT)
-        drawColor(target, normalizeColor(config.BACK_COLOR));
-    if (target == null && config.TRANSPARENT)
-        drawCheckerboard(target);
-    drawDisplay(target);
+    if (!config.TRANSPARENT) {
+        drawColor(normalizeColor(config.BACK_COLOR));
+    } else {
+        drawCheckerboard();
+    }
+    drawDisplay();
 }
 
-function drawColor (target, color) {
+function drawColor (color) {
     colorProgram.bind();
     gl.uniform4f(colorProgram.uniforms.color, color.r, color.g, color.b, 1);
-    generateBuffer(target);
+    generateBuffer(null);
 }
 
-function drawCheckerboard (target) {
+function drawCheckerboard () {
     checkerboardProgram.bind();
     gl.uniform1f(checkerboardProgram.uniforms.aspectRatio, canvas.width / canvas.height);
-    generateBuffer(target);
+    generateBuffer(null);
 }
 
 function normalizeColor (input) {

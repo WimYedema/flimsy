@@ -14,14 +14,15 @@ let ditheringTexture = createTextureAsync('LDR_LLL1_0.png');
 
 const displayMaterial = new Material(baseVertexShader, displayShaderSource);
 
-
-// Render a rectangle on which we will display the fluid simulation
-gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
-gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, -1, 1, 1, 1, 1, -1]), gl.STATIC_DRAW);
-gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
-gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array([0, 1, 2, 0, 2, 3]), gl.STATIC_DRAW);
-gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-gl.enableVertexAttribArray(0);
+export function initDisplay() {
+    // Render a rectangle on which we will display the fluid simulation
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, -1, 1, 1, 1, 1, -1]), gl.STATIC_DRAW);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array([0, 1, 2, 0, 2, 3]), gl.STATIC_DRAW);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(0);
+}
 
 export function generateBuffer(target, clear = false)  {
     if (target == null)
@@ -57,9 +58,9 @@ export function updateKeywords () {
     displayMaterial.setKeywords(displayKeywords);
 }
 
-export function drawDisplay (target) {
-    let width = target == null ? gl.drawingBufferWidth : target.width;
-    let height = target == null ? gl.drawingBufferHeight : target.height;
+export function drawDisplay () {
+    let width = gl.drawingBufferWidth;
+    let height = gl.drawingBufferHeight;
 
     displayMaterial.bind();
     if (config.SHADING)
@@ -73,7 +74,7 @@ export function drawDisplay (target) {
     }
     if (config.SUNRAYS)
         gl.uniform1i(displayMaterial.uniforms.uSunrays, sunrays.attach(3));
-    generateBuffer(target);
+    generateBuffer(null);
 }
 
 function createTextureAsync (url) {
