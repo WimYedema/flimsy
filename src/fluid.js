@@ -40,7 +40,7 @@ const vorticityProgram       = new Program(baseVertexShader, vorticityShader);
 const pressureProgram        = new Program(baseVertexShader, pressureShader);
 const gradienSubtractProgram = new Program(baseVertexShader, gradientSubtractShader);
 
-export function initFramebuffers () {
+export function initFluidFramebuffers () {
     let simRes = getResolution(config.SIM_RESOLUTION);
     let dyeRes = getResolution(config.DYE_RESOLUTION);
 

@@ -27,8 +27,6 @@ SOFTWARE.
 import './style.css'
 import * as dat from 'dat.gui';
 
-import {default as blurVertexShaderCode} from './shaders/blur.vert';
-import {default as blurFragmentShaderCode} from './shaders/blur.frag';
 import {default as colorFragmentShaderCode} from './shaders/color.frag';
 import {default as checkerboardFragmentShaderCode} from './shaders/checkerboard.frag';
 import {default as displayFragmentShaderCode} from './shaders/display.frag';
@@ -45,7 +43,7 @@ import { initBloomFramebuffers, applyBloom, bloom } from './bloom.js';
 import { initSunraysFramebuffers, applySunrays, sunrays, sunraysTemp } from './sunrays.js';
 import { splatPointer, multipleSplats } from './splat.js';
 import {config} from './config.js';
-import { dye, step, initFramebuffers } from './fluid.js';
+import { dye, step, initFluidFramebuffers } from './fluid.js';
 import { generateColor } from './color.js';
 import { pointers } from './canvas.js';
 
@@ -104,9 +102,6 @@ function isMobile () {
     return /Mobi|Android/i.test(navigator.userAgent);
 }
 
-const blurVertexShader = compileShader(gl.VERTEX_SHADER, blurVertexShaderCode);
-
-const blurShader = compileShader(gl.FRAGMENT_SHADER, blurFragmentShaderCode);
 const colorShader = compileShader(gl.FRAGMENT_SHADER, colorFragmentShaderCode);
 const checkerboardShader = compileShader(gl.FRAGMENT_SHADER, checkerboardFragmentShaderCode);
 
@@ -114,7 +109,6 @@ const displayShaderSource = displayFragmentShaderCode;
 
 let ditheringTexture = createTextureAsync('LDR_LLL1_0.png');
 
-const blurProgram            = new Program(blurVertexShader, blurShader);
 const colorProgram           = new Program(baseVertexShader, colorShader);
 const checkerboardProgram    = new Program(baseVertexShader, checkerboardShader);
 
@@ -160,10 +154,14 @@ function updateKeywords () {
     displayMaterial.setKeywords(displayKeywords);
 }
 
+function initFramebuffers () {
+    initFluidFramebuffers();
+    initBloomFramebuffers();
+    initSunraysFramebuffers();
+}
+
 updateKeywords();
 initFramebuffers();
-initBloomFramebuffers();
-initSunraysFramebuffers();
 multipleSplats(parseInt(Math.random() * 20) + 5);
 
 let lastUpdateTime = Date.now();
@@ -219,7 +217,6 @@ function render (target) {
         applyBloom(dye.read, bloom);
     if (config.SUNRAYS) {
         applySunrays(dye.read, dye.write, sunrays);
-        blur(sunrays, sunraysTemp, 1);
     }
 
     if (target == null || !config.TRANSPARENT) {
@@ -266,19 +263,6 @@ function drawDisplay (target) {
     if (config.SUNRAYS)
         gl.uniform1i(displayMaterial.uniforms.uSunrays, sunrays.attach(3));
     blit(target);
-}
-
-function blur (target, temp, iterations) {
-    blurProgram.bind();
-    for (let i = 0; i < iterations; i++) {
-        gl.uniform2f(blurProgram.uniforms.texelSize, target.texelSizeX, 0.0);
-        gl.uniform1i(blurProgram.uniforms.uTexture, target.attach(0));
-        blit(temp);
-
-        gl.uniform2f(blurProgram.uniforms.texelSize, 0.0, target.texelSizeY);
-        gl.uniform1i(blurProgram.uniforms.uTexture, temp.attach(0));
-        blit(target);
-    }
 }
 
 function normalizeColor (input) {
