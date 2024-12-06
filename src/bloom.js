@@ -5,7 +5,7 @@ import { compileShader, baseVertexShader } from './shaders';
 import { Program } from './program';
 import { gl, ext, getResolution } from './webgl';
 import { createFBO } from './fbo';
-import { blit } from './display';
+import { generateBuffer } from './display';
 import {config} from './config.js';
 
 const bloomPrefilterShader = compileShader(gl.FRAGMENT_SHADER, bloomPrefilterFragmentShaderCode);
@@ -56,14 +56,14 @@ export function applyBloom (source, destination) {
     gl.uniform3f(bloomPrefilterProgram.uniforms.curve, curve0, curve1, curve2);
     gl.uniform1f(bloomPrefilterProgram.uniforms.threshold, config.BLOOM_THRESHOLD);
     gl.uniform1i(bloomPrefilterProgram.uniforms.uTexture, source.attach(0));
-    blit(last);
+    generateBuffer(last);
 
     bloomBlurProgram.bind();
     for (let i = 0; i < bloomFramebuffers.length; i++) {
         let dest = bloomFramebuffers[i];
         gl.uniform2f(bloomBlurProgram.uniforms.texelSize, last.texelSizeX, last.texelSizeY);
         gl.uniform1i(bloomBlurProgram.uniforms.uTexture, last.attach(0));
-        blit(dest);
+        generateBuffer(dest);
         last = dest;
     }
 
@@ -75,7 +75,7 @@ export function applyBloom (source, destination) {
         gl.uniform2f(bloomBlurProgram.uniforms.texelSize, last.texelSizeX, last.texelSizeY);
         gl.uniform1i(bloomBlurProgram.uniforms.uTexture, last.attach(0));
         gl.viewport(0, 0, baseTex.width, baseTex.height);
-        blit(baseTex);
+        generateBuffer(baseTex);
         last = baseTex;
     }
 
@@ -84,5 +84,5 @@ export function applyBloom (source, destination) {
     gl.uniform2f(bloomFinalProgram.uniforms.texelSize, last.texelSizeX, last.texelSizeY);
     gl.uniform1i(bloomFinalProgram.uniforms.uTexture, last.attach(0));
     gl.uniform1f(bloomFinalProgram.uniforms.intensity, config.BLOOM_INTENSITY);
-    blit(destination);
+    generateBuffer(destination);
 }

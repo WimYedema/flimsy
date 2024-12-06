@@ -1,7 +1,7 @@
 import { canvas, gl } from './webgl';
 import { baseVertexShader, compileShader } from './shaders';
 import { Program } from './program';
-import { blit } from './display';
+import { generateBuffer } from './display';
 import { generateColor } from './color';
 import { dye, velocity } from './fluid.js';
 import { config } from "./config";
@@ -39,12 +39,12 @@ function splat (x, y, dx, dy, color) {
     gl.uniform2f(splatProgram.uniforms.point, x, y);
     gl.uniform3f(splatProgram.uniforms.color, dx, dy, 0.0);
     gl.uniform1f(splatProgram.uniforms.radius, correctRadius(config.SPLAT_RADIUS / 100.0));
-    blit(velocity.write);
+    generateBuffer(velocity.write);
     velocity.swap();
 
     gl.uniform1i(splatProgram.uniforms.uTarget, dye.read.attach(0));
     gl.uniform3f(splatProgram.uniforms.color, color.r, color.g, color.b);
-    blit(dye.write);
+    generateBuffer(dye.write);
     dye.swap();
 }
 

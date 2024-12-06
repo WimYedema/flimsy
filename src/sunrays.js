@@ -3,7 +3,7 @@ import { createFBO } from './fbo';
 import { Program } from './program';
 import { baseVertexShader, compileShader } from './shaders';
 import { config } from './config';
-import { blit } from './display';
+import { generateBuffer } from './display';
 
 import {default as blurVertexShaderCode} from './shaders/blur.vert';
 import {default as blurFragmentShaderCode} from './shaders/blur.frag';
@@ -40,12 +40,12 @@ export function applySunrays (source, mask, destination) {
     gl.disable(gl.BLEND);
     sunraysMaskProgram.bind();
     gl.uniform1i(sunraysMaskProgram.uniforms.uTexture, source.attach(0));
-    blit(mask);
+    generateBuffer(mask);
 
     sunraysProgram.bind();
     gl.uniform1f(sunraysProgram.uniforms.weight, config.SUNRAYS_WEIGHT);
     gl.uniform1i(sunraysProgram.uniforms.uTexture, mask.attach(0));
-    blit(destination);
+    generateBuffer(destination);
 
     blur(destination, sunraysTemp, 1);
 }
@@ -55,11 +55,11 @@ function blur (target, temp, iterations) {
     for (let i = 0; i < iterations; i++) {
         gl.uniform2f(blurProgram.uniforms.texelSize, target.texelSizeX, 0.0);
         gl.uniform1i(blurProgram.uniforms.uTexture, target.attach(0));
-        blit(temp);
+        generateBuffer(temp);
 
         gl.uniform2f(blurProgram.uniforms.texelSize, 0.0, target.texelSizeY);
         gl.uniform1i(blurProgram.uniforms.uTexture, temp.attach(0));
-        blit(target);
+        generateBuffer(target);
     }
 }
 

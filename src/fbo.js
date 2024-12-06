@@ -2,7 +2,7 @@ import {gl} from './webgl.js'
 import { baseVertexShader, compileShader } from './shaders.js';
 import {default as copyFragmentShaderCode} from './shaders/copy.frag';
 import { Program } from './program.js';
-import { blit } from './display.js';
+import { generateBuffer } from './display.js';
 
 const copyShader = compileShader(gl.FRAGMENT_SHADER, copyFragmentShaderCode);
 const copyProgram = new Program(baseVertexShader, copyShader, "copy");
@@ -45,7 +45,7 @@ export function resizeFBO (target, w, h, internalFormat, format, type, param) {
     let newFBO = createFBO(w, h, internalFormat, format, type, param);
     copyProgram.bind();
     gl.uniform1i(copyProgram.uniforms.uTexture, target.attach(0));
-    blit(newFBO);
+    generateBuffer(newFBO);
     return newFBO;
 }
 

@@ -4,17 +4,12 @@ export class Program {
     constructor (vertexShader, fragmentShader, name="") {
         this.name = name;
         this.uniforms = {};
-        this.fragmentShader = fragmentShader;
         this.program = createProgram(vertexShader, fragmentShader);
         this.uniforms = getUniforms(this.program);
     }
 
     bind () {
-        try {
-            gl.useProgram(this.program);
-        } catch(err) {
-            console.log(err)
-        }
+        gl.useProgram(this.program);
     }
 }
 

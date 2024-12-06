@@ -35,7 +35,7 @@ import { baseVertexShader, compileShader } from './shaders.js';
 
 import {canvas, gl, ext, resizeCanvas, scaleByPixelRatio} from './webgl.js'
 import {Program } from './program.js';
-import { blit } from './display.js';
+import { generateBuffer } from './display.js';
 import { Material } from './material.js';
 import { captureScreenshot } from './screenshot.js';
 
@@ -237,13 +237,13 @@ function render (target) {
 function drawColor (target, color) {
     colorProgram.bind();
     gl.uniform4f(colorProgram.uniforms.color, color.r, color.g, color.b, 1);
-    blit(target);
+    generateBuffer(target);
 }
 
 function drawCheckerboard (target) {
     checkerboardProgram.bind();
     gl.uniform1f(checkerboardProgram.uniforms.aspectRatio, canvas.width / canvas.height);
-    blit(target);
+    generateBuffer(target);
 }
 
 function drawDisplay (target) {
@@ -262,7 +262,7 @@ function drawDisplay (target) {
     }
     if (config.SUNRAYS)
         gl.uniform1i(displayMaterial.uniforms.uSunrays, sunrays.attach(3));
-    blit(target);
+    generateBuffer(target);
 }
 
 function normalizeColor (input) {

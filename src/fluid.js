@@ -4,7 +4,7 @@ import { createFBO } from "./fbo";
 import { config } from "./config";
 import { compileShader, baseVertexShader } from "./shaders";
 import { Program } from "./program";
-import { blit } from "./display";
+import { generateBuffer } from "./display";
 
 import {default as clearFragmentShaderCode} from './shaders/clear.frag';
 import {default as advectionFragmentShaderCode} from './shaders/advection.frag';
@@ -73,7 +73,7 @@ export function step (dt) {
     curlProgram.bind();
     gl.uniform2f(curlProgram.uniforms.texelSize, velocity.texelSizeX, velocity.texelSizeY);
     gl.uniform1i(curlProgram.uniforms.uVelocity, velocity.read.attach(0));
-    blit(curl);
+    generateBuffer(curl);
 
     vorticityProgram.bind();
     gl.uniform2f(vorticityProgram.uniforms.texelSize, velocity.texelSizeX, velocity.texelSizeY);
@@ -81,18 +81,18 @@ export function step (dt) {
     gl.uniform1i(vorticityProgram.uniforms.uCurl, curl.attach(1));
     gl.uniform1f(vorticityProgram.uniforms.curl, config.CURL);
     gl.uniform1f(vorticityProgram.uniforms.dt, dt);
-    blit(velocity.write);
+    generateBuffer(velocity.write);
     velocity.swap();
 
     divergenceProgram.bind();
     gl.uniform2f(divergenceProgram.uniforms.texelSize, velocity.texelSizeX, velocity.texelSizeY);
     gl.uniform1i(divergenceProgram.uniforms.uVelocity, velocity.read.attach(0));
-    blit(divergence);
+    generateBuffer(divergence);
 
     clearProgram.bind();
     gl.uniform1i(clearProgram.uniforms.uTexture, pressure.read.attach(0));
     gl.uniform1f(clearProgram.uniforms.value, config.PRESSURE);
-    blit(pressure.write);
+    generateBuffer(pressure.write);
     pressure.swap();
 
     pressureProgram.bind();
@@ -100,7 +100,7 @@ export function step (dt) {
     gl.uniform1i(pressureProgram.uniforms.uDivergence, divergence.attach(0));
     for (let i = 0; i < config.PRESSURE_ITERATIONS; i++) {
         gl.uniform1i(pressureProgram.uniforms.uPressure, pressure.read.attach(1));
-        blit(pressure.write);
+        generateBuffer(pressure.write);
         pressure.swap();
     }
 
@@ -108,7 +108,7 @@ export function step (dt) {
     gl.uniform2f(gradienSubtractProgram.uniforms.texelSize, velocity.texelSizeX, velocity.texelSizeY);
     gl.uniform1i(gradienSubtractProgram.uniforms.uPressure, pressure.read.attach(0));
     gl.uniform1i(gradienSubtractProgram.uniforms.uVelocity, velocity.read.attach(1));
-    blit(velocity.write);
+    generateBuffer(velocity.write);
     velocity.swap();
 
     advectionProgram.bind();
@@ -120,7 +120,7 @@ export function step (dt) {
     gl.uniform1i(advectionProgram.uniforms.uSource, velocityId);
     gl.uniform1f(advectionProgram.uniforms.dt, dt);
     gl.uniform1f(advectionProgram.uniforms.dissipation, config.VELOCITY_DISSIPATION);
-    blit(velocity.write);
+    generateBuffer(velocity.write);
     velocity.swap();
 
     if (!ext.supportLinearFiltering)
@@ -128,6 +128,6 @@ export function step (dt) {
     gl.uniform1i(advectionProgram.uniforms.uVelocity, velocity.read.attach(0));
     gl.uniform1i(advectionProgram.uniforms.uSource, dye.read.attach(1));
     gl.uniform1f(advectionProgram.uniforms.dissipation, config.DENSITY_DISSIPATION);
-    blit(dye.write);
+    generateBuffer(dye.write);
     dye.swap();
 }

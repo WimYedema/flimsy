@@ -8,7 +8,7 @@ gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array([0, 1, 2, 0, 2, 3]), gl.S
 gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
 gl.enableVertexAttribArray(0);
 
-export function blit(target, clear = false)  {
+export function generateBuffer(target, clear = false)  {
     if (target == null)
     {
         gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
