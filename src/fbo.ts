@@ -1,8 +1,8 @@
-import {gl} from './webgl.js'
-import { baseVertexShader, compileShader } from './shaders.js';
+import {gl} from './webgl'
+import { baseVertexShader, compileShader } from './shaders';
 import {default as copyFragmentShaderCode} from './shaders/copy.frag';
-import { Program } from './program.js';
-import { generateBuffer } from './display.js';
+import { Program } from './program';
+import { generateBuffer } from './display';
 
 const copyShader = compileShader(gl.FRAGMENT_SHADER, copyFragmentShaderCode);
 const copyProgram = new Program(baseVertexShader, copyShader, "copy");

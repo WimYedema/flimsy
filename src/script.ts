@@ -30,19 +30,19 @@ import * as dat from 'dat.gui';
 import {default as colorFragmentShaderCode} from './shaders/color.frag';
 import {default as checkerboardFragmentShaderCode} from './shaders/checkerboard.frag';
 
-import { baseVertexShader, compileShader } from './shaders.js';
+import { baseVertexShader, compileShader } from './shaders';
 
-import {canvas, gl, ext, resizeCanvas } from './webgl.js'
-import {Program } from './program.js';
-import { generateBuffer, updateKeywords, drawDisplay, initDisplay } from './display.js';
+import {canvas, gl, ext, resizeCanvas } from './webgl'
+import {Program } from './program';
+import { generateBuffer, updateKeywords, drawDisplay, initDisplay } from './display';
 
-import { initBloomFramebuffers, applyBloom, bloom } from './bloom.js';
-import { initSunraysFramebuffers, applySunrays, sunrays } from './sunrays.js';
-import { splatPointer, multipleSplats } from './splat.js';
-import {config} from './config.js';
-import { dye, step, initFluidFramebuffers } from './fluid.js';
-import { generateColor } from './color.js';
-import { pointers } from './canvas.js';
+import { initBloomFramebuffers, applyBloom, bloom } from './bloom';
+import { initSunraysFramebuffers, applySunrays, sunrays } from './sunrays';
+import { splatPointer, multipleSplats } from './splat';
+import {config} from './config';
+import { dye, step, initFluidFramebuffers } from './fluid';
+import { generateColor } from './color';
+import { pointers } from './canvas';
 
 // Simulation section
 

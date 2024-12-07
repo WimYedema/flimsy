@@ -3,7 +3,7 @@ import { baseVertexShader, compileShader } from './shaders';
 import { Program } from './program';
 import { generateBuffer } from './display';
 import { generateColor } from './color';
-import { dye, velocity } from './fluid.js';
+import { dye, velocity } from './fluid';
 import { config } from "./config";
 
 import {default as splatFragmentShaderCode} from './shaders/splat.frag';

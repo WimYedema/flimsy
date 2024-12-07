@@ -1,4 +1,4 @@
-import {gl} from './webgl.js'
+import {gl} from './webgl'
 
 export class Program {
     constructor (vertexShader, fragmentShader, name="") {

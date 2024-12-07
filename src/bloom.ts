@@ -6,7 +6,7 @@ import { Program } from './program';
 import { gl, ext, getResolution } from './webgl';
 import { createFBO } from './fbo';
 import { generateBuffer } from './display';
-import {config} from './config.js';
+import {config} from './config';
 
 const bloomPrefilterShader = compileShader(gl.FRAGMENT_SHADER, bloomPrefilterFragmentShaderCode);
 const bloomBlurShader = compileShader(gl.FRAGMENT_SHADER, bloomBlurFragmentShaderCode);

@@ -1,5 +1,5 @@
 import {default as baseVertexShaderCode} from './shaders/base.vert';
-import {gl} from './webgl.js'
+import {gl} from './webgl'
 
 export const baseVertexShader = compileShader(gl.VERTEX_SHADER, baseVertexShaderCode);
 
