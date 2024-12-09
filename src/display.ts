@@ -7,12 +7,20 @@ import { sunrays } from "./sunrays";
 import { config } from "./config";
 
 import {default as displayFragmentShaderCode} from './shaders/display.frag';
+import { FramebufferObject } from "./fbo";
 
 const displayShaderSource = displayFragmentShaderCode;
 
 let ditheringTexture = createTextureAsync('LDR_LLL1_0.png');
 
 const displayMaterial = new Material(baseVertexShader, displayShaderSource);
+
+export interface TextureObject {
+    texture: WebGLTexture;
+    width: number;
+    height: number;
+    attach: (id: number) => number;
+}
 
 export function initDisplay() {
     // Render a rectangle on which we will display the fluid simulation
@@ -24,7 +32,7 @@ export function initDisplay() {
     gl.enableVertexAttribArray(0);
 }
 
-export function generateBuffer(target, clear = false)  {
+export function generateBuffer(target: FramebufferObject|null, clear = false)  {
     if (target == null)
     {
         gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
@@ -44,11 +52,11 @@ export function generateBuffer(target, clear = false)  {
     gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
 }
 
-function CHECK_FRAMEBUFFER_STATUS () {
-    let status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
-    if (status != gl.FRAMEBUFFER_COMPLETE)
-        console.trace("Framebuffer error: " + status);
-}
+// function CHECK_FRAMEBUFFER_STATUS () {
+//     let status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+//     if (status != gl.FRAMEBUFFER_COMPLETE)
+//         console.trace("Framebuffer error: " + status);
+// }
 
 export function updateKeywords () {
     let displayKeywords = [];
@@ -77,8 +85,11 @@ export function drawDisplay () {
     generateBuffer(null);
 }
 
-function createTextureAsync (url) {
+function createTextureAsync (url: string) : TextureObject {
     let texture = gl.createTexture();
+    if (texture===null) {
+        throw "Could not create texture"
+    }
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -86,11 +97,11 @@ function createTextureAsync (url) {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, 1, 1, 0, gl.RGB, gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255]));
 
-    let obj = {
+    let obj: TextureObject = {
         texture,
         width: 1,
         height: 1,
-        attach (id) {
+        attach (id: number) {
             gl.activeTexture(gl.TEXTURE0 + id);
             gl.bindTexture(gl.TEXTURE_2D, texture);
             return id;
@@ -109,7 +120,7 @@ function createTextureAsync (url) {
     return obj;
 }
 
-function getTextureScale (texture, width, height) {
+function getTextureScale (texture: TextureObject, width: number, height: number) {
     return {
         x: width / texture.width,
         y: height / texture.height

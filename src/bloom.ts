@@ -4,7 +4,7 @@ import {default as bloomFinalFragmentShaderCode} from './shaders/bloomFinal.frag
 import { compileShader, baseVertexShader } from './shaders';
 import { Program } from './program';
 import { gl, ext, getResolution } from './webgl';
-import { createFBO } from './fbo';
+import { createFBO, FramebufferObject } from './fbo';
 import { generateBuffer } from './display';
 import {config} from './config.js';
 
@@ -12,8 +12,8 @@ const bloomPrefilterShader = compileShader(gl.FRAGMENT_SHADER, bloomPrefilterFra
 const bloomBlurShader = compileShader(gl.FRAGMENT_SHADER, bloomBlurFragmentShaderCode);
 const bloomFinalShader = compileShader(gl.FRAGMENT_SHADER, bloomFinalFragmentShaderCode);
 
-export let bloom;
-let bloomFramebuffers = [];
+export let bloom: FramebufferObject;
+let bloomFramebuffers: FramebufferObject[] = [];
 
 const bloomPrefilterProgram  = new Program(baseVertexShader, bloomPrefilterShader);
 const bloomBlurProgram       = new Program(baseVertexShader, bloomBlurShader);
@@ -41,11 +41,11 @@ export function initBloomFramebuffers () {
     }
 }
 
-export function applyBloom (source, destination) {
+export function applyBloom (source: FramebufferObject, destination: FramebufferObject) {
     if (bloomFramebuffers.length < 2)
         return;
 
-    let last = destination;
+    let last: FramebufferObject = destination;
 
     gl.disable(gl.BLEND);
     bloomPrefilterProgram.bind();

@@ -1,17 +1,21 @@
-import { createProgram, getUniforms } from "./program";
+import { createProgram, getUniforms, Uniforms } from "./program";
 import { compileShader } from "./shaders";
 import { gl } from "./webgl";
 
 export class Material {
-    constructor (vertexShader, fragmentShaderSource) {
-        this.vertexShader = vertexShader;
-        this.fragmentShaderSource = fragmentShaderSource;
+    uniforms: Uniforms;
+    programs: WebGLProgram[];
+    activeProgram: WebGLProgram|null;
+
+    constructor (private vertexShader: WebGLShader, private fragmentShaderSource: string) {
+        // this.vertexShader = vertexShader;
+        // this.fragmentShaderSource = fragmentShaderSource;
         this.programs = [];
         this.activeProgram = null;
-        this.uniforms = [];
+        this.uniforms = {};
     }
 
-    setKeywords (keywords) {
+    setKeywords (keywords: string[]) {
         let hash = 0;
         for (let i = 0; i < keywords.length; i++)
             hash += hashCode(keywords[i]);
@@ -35,7 +39,7 @@ export class Material {
     }
 }
 
-function hashCode (s) {
+function hashCode (s: string): number{
     if (s.length == 0) return 0;
     let hash = 0;
     for (let i = 0; i < s.length; i++) {

@@ -9,6 +9,9 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@types/dat.gui": "^0.7.13",
+    "@types/gl": "^6.0.5",
+    "typescript": "^5.7.2",
     "vite": "^6.0.1",
     "vite-plugin-glsl": "^1.3.1"
   },

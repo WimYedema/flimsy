@@ -1,5 +1,5 @@
 import { gl, ext, getResolution } from './webgl';
-import { createFBO } from './fbo';
+import { createFBO, FramebufferObject } from './fbo';
 import { Program } from './program';
 import { baseVertexShader, compileShader } from './shaders';
 import { config } from './config';
@@ -17,8 +17,8 @@ const blurShader = compileShader(gl.FRAGMENT_SHADER, blurFragmentShaderCode);
 const sunraysMaskShader = compileShader(gl.FRAGMENT_SHADER, sunraysMaskFragmentShaderCode);
 const sunraysShader = compileShader(gl.FRAGMENT_SHADER, sunraysFragmentShaderCode);
 
-export let sunrays;
-let sunraysTemp;
+export let sunrays: FramebufferObject;
+let sunraysTemp: FramebufferObject;
 
 const blurProgram            = new Program(blurVertexShader, blurShader);
 
@@ -36,7 +36,7 @@ export function initSunraysFramebuffers () {
     sunraysTemp = createFBO(res.width, res.height, r.internalFormat, r.format, texType, filtering);
 }
 
-export function applySunrays (source, mask, destination) {
+export function applySunrays (source: FramebufferObject, mask: FramebufferObject, destination: FramebufferObject) {
     gl.disable(gl.BLEND);
     sunraysMaskProgram.bind();
     gl.uniform1i(sunraysMaskProgram.uniforms.uTexture, source.attach(0));
@@ -50,7 +50,7 @@ export function applySunrays (source, mask, destination) {
     blur(destination, sunraysTemp, 1);
 }
 
-function blur (target, temp, iterations) {
+function blur (target: FramebufferObject, temp: FramebufferObject, iterations: number) {
     blurProgram.bind();
     for (let i = 0; i < iterations; i++) {
         gl.uniform2f(blurProgram.uniforms.texelSize, target.texelSizeX, 0.0);

@@ -1,6 +1,16 @@
-import { createFBO, resizeFBO } from "./fbo";
+import { createFBO, FramebufferObject, resizeFBO } from "./fbo";
 
-export function createDoubleFBO (w, h, internalFormat, format, type, param) {
+export interface DoubleFramebufferObject {
+    width: number;
+    height: number;
+    texelSizeX: number;
+    texelSizeY: number;
+    read: FramebufferObject;
+    write: FramebufferObject;
+    swap: () => void;
+}
+
+export function createDoubleFBO (w: number, h: number, internalFormat: number, format: number, type: number, param: number): DoubleFramebufferObject {
     let fbo1 = createFBO(w, h, internalFormat, format, type, param);
     let fbo2 = createFBO(w, h, internalFormat, format, type, param);
 
@@ -29,7 +39,7 @@ export function createDoubleFBO (w, h, internalFormat, format, type, param) {
     }
 }
 
-export function resizeDoubleFBO (target, w, h, internalFormat, format, type, param) {
+export function resizeDoubleFBO (target: DoubleFramebufferObject, w: number, h: number, internalFormat: number, format: number, type: number, param: number) : DoubleFramebufferObject {
     if (target.width == w && target.height == h)
         return target;
     target.read = resizeFBO(target.read, w, h, internalFormat, format, type, param);
