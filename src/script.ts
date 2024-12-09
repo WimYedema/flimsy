@@ -38,10 +38,10 @@ import { generateBuffer, updateKeywords, drawDisplay, initDisplay } from './disp
 
 import { initBloomFramebuffers, applyBloom, bloom } from './bloom';
 import { initSunraysFramebuffers, applySunrays, sunrays } from './sunrays';
-import { splatPointer, multipleSplats } from './splat';
+import { splatPointer } from './splat';
 import {config} from './config';
 import { dye, step, initFluidFramebuffers } from './fluid';
-import { generateColor } from './color';
+import { generateColor, RgbColor } from './color';
 import { pointers } from './canvas';
 
 // Simulation section
@@ -116,7 +116,7 @@ function main() {
 }
 
 function update () {
-    const dt = calcDeltaTime();
+    const dt: number = calcDeltaTime();
     if (resizeCanvas())
         initFramebuffers();
     updateColors(dt);
@@ -126,7 +126,7 @@ function update () {
     requestAnimationFrame(update);
 }
 
-function calcDeltaTime () {
+function calcDeltaTime (): number {
     let now = Date.now();
     let dt = (now - lastUpdateTime) / 1000;
     dt = Math.min(dt, 0.016666);
@@ -134,7 +134,7 @@ function calcDeltaTime () {
     return dt;
 }
 
-function updateColors (dt) {
+function updateColors (dt: number) {
     if (!config.COLORFUL) return;
 
     colorUpdateTimer += dt * config.COLOR_UPDATE_SPEED;
@@ -173,7 +173,7 @@ function render () {
     drawDisplay();
 }
 
-function drawColor (color) {
+function drawColor (color: RgbColor) {
     colorProgram.bind();
     gl.uniform4f(colorProgram.uniforms.color, color.r, color.g, color.b, 1);
     generateBuffer(null);
@@ -185,7 +185,7 @@ function drawCheckerboard () {
     generateBuffer(null);
 }
 
-function normalizeColor (input) {
+function normalizeColor (input: RgbColor): RgbColor {
     let output = {
         r: input.r / 255,
         g: input.g / 255,
@@ -194,7 +194,7 @@ function normalizeColor (input) {
     return output;
 }
 
-function wrap (value, min, max) {
+function wrap (value: number, min: number, max: number): number {
     let range = max - min;
     if (range == 0) return min;
     return (value - min) % range + min;

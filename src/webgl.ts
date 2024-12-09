@@ -1,6 +1,26 @@
-export const canvas = document.getElementsByTagName('canvas')[0];
+export const canvas: HTMLCanvasElement = document.getElementsByTagName('canvas')[0];
 
-export const { gl, ext } = getWebGLContext(canvas);
+type WebGL = WebGLRenderingContext|WebGL2RenderingContext;
+interface ColorFormat {
+    internalFormat: number;
+    format: number;
+}
+interface WebGLContext {
+    gl: WebGL, 
+    ext: {
+        formatRGBA: ColorFormat;
+        formatRG: ColorFormat;
+        formatR: ColorFormat;
+        halfFloatTexType: number;
+        supportLinearFiltering: boolean;
+    }
+}
+export const {gl, ext}: WebGLContext = getWebGLContext(canvas);
+
+export interface Resolution {
+    width: number;
+    height: number;
+}
 
 export function resizeCanvas () {
     let width = scaleByPixelRatio(canvas.clientWidth);
@@ -13,12 +33,12 @@ export function resizeCanvas () {
     return false;
 }
 
-export function scaleByPixelRatio (input) {
+export function scaleByPixelRatio (input: number) : number {
     let pixelRatio = window.devicePixelRatio || 1;
     return Math.floor(input * pixelRatio);
 }
 
-export function getResolution (resolution) {
+export function getResolution (resolution: number) : Resolution {
     let aspectRatio = gl.drawingBufferWidth / gl.drawingBufferHeight;
     if (aspectRatio < 1)
         aspectRatio = 1.0 / aspectRatio;
@@ -32,45 +52,53 @@ export function getResolution (resolution) {
         return { width: min, height: max };
 }
 
-function getWebGLContext (canvas) {
+function getWebGLContext (canvas: HTMLCanvasElement): WebGLContext {
     const params = { alpha: true, depth: false, stencil: false, antialias: false, preserveDrawingBuffer: false };
 
-    let gl = canvas.getContext('webgl2', params);
-    const isWebGL2 = !!gl;
-    if (!isWebGL2)
-        gl = canvas.getContext('webgl', params) || canvas.getContext('experimental-webgl', params);
-
+    let gl: WebGL;
     let halfFloat;
-    let supportLinearFiltering;
-    if (isWebGL2) {
-        gl.getExtension('EXT_color_buffer_float');
-        supportLinearFiltering = gl.getExtension('OES_texture_float_linear');
-    } else {
-        halfFloat = gl.getExtension('OES_texture_half_float');
-        supportLinearFiltering = gl.getExtension('OES_texture_half_float_linear');
-    }
-
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
-
-    const halfFloatTexType = isWebGL2 ? gl.HALF_FLOAT : halfFloat.HALF_FLOAT_OES;
+    let supportLinearFiltering: boolean;
+    let halfFloatTexType;
     let formatRGBA;
     let formatRG;
     let formatR;
 
-    if (isWebGL2)
+    // @ts-expect-error
+    let webgl2: WebGL2RenderingContext|null = canvas.getContext('webgl2', params);
+
+    if (webgl2!==null)
     {
-        formatRGBA = getSupportedFormat(gl, gl.RGBA16F, gl.RGBA, halfFloatTexType);
-        formatRG = getSupportedFormat(gl, gl.RG16F, gl.RG, halfFloatTexType);
-        formatR = getSupportedFormat(gl, gl.R16F, gl.RED, halfFloatTexType);
+        webgl2.getExtension('EXT_color_buffer_float');
+        supportLinearFiltering = webgl2.getExtension('OES_texture_float_linear')!==null;
+
+        halfFloatTexType = webgl2.HALF_FLOAT;
+        formatRGBA = getWebGL2SupportedFormat(webgl2, webgl2.RGBA16F, webgl2.RGBA, halfFloatTexType);
+        formatRG = getWebGL2SupportedFormat(webgl2, webgl2.RG16F, webgl2.RG, halfFloatTexType);
+        formatR = getWebGL2SupportedFormat(webgl2, webgl2.R16F, webgl2.RED, halfFloatTexType);
+        gl = webgl2;
     }
     else
     {
-        formatRGBA = getSupportedFormat(gl, gl.RGBA, gl.RGBA, halfFloatTexType);
-        formatRG = getSupportedFormat(gl, gl.RGBA, gl.RGBA, halfFloatTexType);
-        formatR = getSupportedFormat(gl, gl.RGBA, gl.RGBA, halfFloatTexType);
+        // @ts-expect-error
+        let webgl: WebGLRenderingContext|null = canvas.getContext('webgl', params) || canvas.getContext('experimental-webgl', params);
+        if (webgl===null) {
+            throw "No WebGL or WebGL2";
+        }
+        halfFloat = webgl.getExtension('OES_texture_half_float');
+        supportLinearFiltering = webgl.getExtension('OES_texture_half_float_linear')!==null;
+        if (halfFloat===null) {
+            throw "Missing extension OES_texture_half_float"
+        }
+        halfFloatTexType = halfFloat.HALF_FLOAT_OES;
+        formatRGBA = getWebGLSupportedFormat(webgl, webgl.RGBA, webgl.RGBA, halfFloatTexType);
+        formatRG = getWebGLSupportedFormat(webgl, webgl.RGBA, webgl.RGBA, halfFloatTexType);
+        formatR = getWebGLSupportedFormat(webgl, webgl.RGBA, webgl.RGBA, halfFloatTexType);
+        gl = webgl;
     }
 
     // ga('send', 'event', isWebGL2 ? 'webgl2' : 'webgl', formatRGBA == null ? 'not supported' : 'supported');
+
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
     return {
         gl,
@@ -84,18 +112,18 @@ function getWebGLContext (canvas) {
     };
 }
 
-function getSupportedFormat (gl, internalFormat, format, type)
+function getWebGL2SupportedFormat (gl: WebGL2RenderingContext, internalFormat: number, format: number, type: number): ColorFormat
 {
     if (!supportRenderTextureFormat(gl, internalFormat, format, type))
     {
         switch (internalFormat)
         {
             case gl.R16F:
-                return getSupportedFormat(gl, gl.RG16F, gl.RG, type);
+                return getWebGL2SupportedFormat(gl, gl.RG16F, gl.RG, type);
             case gl.RG16F:
-                return getSupportedFormat(gl, gl.RGBA16F, gl.RGBA, type);
+                return getWebGL2SupportedFormat(gl, gl.RGBA16F, gl.RGBA, type);
             default:
-                return null;
+                throw "Cannot find usable color format"
         }
     }
 
@@ -105,7 +133,20 @@ function getSupportedFormat (gl, internalFormat, format, type)
     }
 }
 
-function supportRenderTextureFormat (gl, internalFormat, format, type) {
+function getWebGLSupportedFormat (gl: WebGLRenderingContext, internalFormat: number, format: number, type: number): ColorFormat
+{
+    if (!supportRenderTextureFormat(gl, internalFormat, format, type))
+    {
+        throw "Cannot find usable color format"
+    }
+
+    return {
+        internalFormat,
+        format
+    }
+}
+
+function supportRenderTextureFormat (gl: WebGL, internalFormat: number, format: number, type: number): boolean {
     let texture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);

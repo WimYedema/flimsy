@@ -1,6 +1,6 @@
 import { gl, ext, getResolution } from "./webgl";
-import { createDoubleFBO, resizeDoubleFBO } from "./double_fbo";
-import { createFBO } from "./fbo";
+import { createDoubleFBO, DoubleFramebufferObject, resizeDoubleFBO } from "./double_fbo";
+import { createFBO, FramebufferObject } from "./fbo";
 import { config } from "./config";
 import { compileShader, baseVertexShader } from "./shaders";
 import { Program } from "./program";
@@ -14,11 +14,11 @@ import {default as vorticityFragmentShaderCode} from './shaders/vorticity.frag';
 import {default as pressureFragmentShaderCode} from './shaders/pressure.frag';
 import {default as gradientFragmentShaderCode} from './shaders/gradient.frag';
 
-export let dye;
-export let velocity;
-export let divergence;
-export let curl;
-export let pressure;
+export let dye: DoubleFramebufferObject;
+export let velocity: DoubleFramebufferObject;
+export let divergence: FramebufferObject;
+export let curl: FramebufferObject;
+export let pressure: DoubleFramebufferObject;
 
 const clearShader = compileShader(gl.FRAGMENT_SHADER, clearFragmentShaderCode);
 
@@ -67,7 +67,7 @@ export function initFluidFramebuffers () {
     pressure   = createDoubleFBO(simRes.width, simRes.height, r.internalFormat, r.format, texType, gl.NEAREST);
 }
 
-export function step (dt) {
+export function step (dt: number) {
     gl.disable(gl.BLEND);
 
     curlProgram.bind();

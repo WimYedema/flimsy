@@ -1,12 +1,14 @@
 import {default as baseVertexShaderCode} from './shaders/base.vert';
 import {gl} from './webgl'
-
 export const baseVertexShader = compileShader(gl.VERTEX_SHADER, baseVertexShaderCode);
 
-export function compileShader (type, source, keywords) {
+export function compileShader (type: GLenum, source: string, keywords?: null|string[]): WebGLShader {
     source = addKeywords(source, keywords);
 
-    const shader = gl.createShader(type);
+    const shader: WebGLShader|null = gl.createShader(type);
+    if (shader===null) {
+        throw "Failed to compile WebGL shader"
+    }
     gl.shaderSource(shader, source);
     gl.compileShader(shader);
 
@@ -16,7 +18,7 @@ export function compileShader (type, source, keywords) {
     return shader;
 };
 
-function addKeywords (source, keywords) {
+function addKeywords (source: string, keywords?: null|string[]) : string {
     if (keywords == null) return source;
     let keywordsString = '';
     keywords.forEach(keyword => {

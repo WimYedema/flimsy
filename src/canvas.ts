@@ -2,7 +2,7 @@ import { pointerPrototype, updatePointerDownData, updatePointerMoveData, updateP
 import { canvas } from "./webgl";
 import { scaleByPixelRatio } from "./webgl";
 
-export let pointers = [];
+export let pointers: pointerPrototype[] = [];
 pointers.push(new pointerPrototype());
 
 canvas.addEventListener('mousedown', e => {

@@ -1,9 +1,15 @@
 import {gl} from './webgl'
 
+export interface Uniforms {
+    [key: string]: WebGLUniformLocation|null;
+};
+
 export class Program {
-    constructor (vertexShader, fragmentShader, name="") {
+    program: WebGLProgram;
+    uniforms: Uniforms;
+
+    constructor (vertexShader: WebGLShader, fragmentShader: WebGLShader, public name: string ="") {
         this.name = name;
-        this.uniforms = {};
         this.program = createProgram(vertexShader, fragmentShader);
         this.uniforms = getUniforms(this.program);
     }
@@ -13,8 +19,11 @@ export class Program {
     }
 }
 
-export function createProgram (vertexShader, fragmentShader) {
+export function createProgram (vertexShader: WebGLShader, fragmentShader: WebGLShader): WebGLProgram {
     let program = gl.createProgram();
+    if (program===null) {
+        throw "Could not create program"
+    }
     gl.attachShader(program, vertexShader);
     gl.attachShader(program, fragmentShader);
     gl.linkProgram(program);
@@ -25,11 +34,15 @@ export function createProgram (vertexShader, fragmentShader) {
     return program;
 }
 
-export function getUniforms (program) {
-    let uniforms = [];
+export function getUniforms (program: WebGLProgram) : Uniforms {
+    let uniforms: Uniforms = {};
     let uniformCount = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
     for (let i = 0; i < uniformCount; i++) {
-        let uniformName = gl.getActiveUniform(program, i).name;
+        let activeUniform = gl.getActiveUniform(program, i);
+        if (activeUniform===null) {
+            throw "Failed to get active uniform"
+        }
+        let uniformName = activeUniform.name;
         uniforms[uniformName] = gl.getUniformLocation(program, uniformName);
     }
     return uniforms;
