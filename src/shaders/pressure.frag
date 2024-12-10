@@ -17,5 +17,6 @@ void main () {
     float C = texture2D(uPressure, vUv).x;
     float divergence = texture2D(uDivergence, vUv).x;
     float pressure = (L + R + B + T - divergence) * 0.25;
+
     gl_FragColor = vec4(pressure, 0.0, 0.0, 1.0);
 }

@@ -85,7 +85,7 @@ export function drawDisplay () {
     generateBuffer(null);
 }
 
-function createTextureAsync (url: string) : TextureObject {
+export function createTextureAsync (url: string) : TextureObject {
     let texture = gl.createTexture();
     if (texture===null) {
         throw "Could not create texture"

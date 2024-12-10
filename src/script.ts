@@ -29,12 +29,13 @@ import * as dat from 'dat.gui';
 
 import {default as colorFragmentShaderCode} from './shaders/color.frag';
 import {default as checkerboardFragmentShaderCode} from './shaders/checkerboard.frag';
+import {default as textureFragmentShaderCode} from './shaders/texture.frag';
 
 import { baseVertexShader, compileShader } from './shaders';
 
 import {canvas, gl, ext, resizeCanvas } from './webgl'
 import {Program } from './program';
-import { generateBuffer, updateKeywords, drawDisplay, initDisplay } from './display';
+import { generateBuffer, updateKeywords, drawDisplay, initDisplay, createTextureAsync } from './display';
 
 import { initBloomFramebuffers, applyBloom, bloom } from './bloom';
 import { initSunraysFramebuffers, applySunrays, sunrays } from './sunrays';
@@ -43,14 +44,17 @@ import {config} from './config';
 import { dye, step, initFluidFramebuffers } from './fluid';
 import { generateColor, RgbColor } from './color';
 import { pointers } from './canvas';
+import {TextureObject} from './display'
 
 // Simulation section
 
 const colorShader = compileShader(gl.FRAGMENT_SHADER, colorFragmentShaderCode);
 const checkerboardShader = compileShader(gl.FRAGMENT_SHADER, checkerboardFragmentShaderCode);
+const textureShader = compileShader(gl.FRAGMENT_SHADER, textureFragmentShaderCode);
 
 const colorProgram           = new Program(baseVertexShader, colorShader);
 const checkerboardProgram    = new Program(baseVertexShader, checkerboardShader);
+const textureProgram         = new Program(baseVertexShader, textureShader);
 
 let lastUpdateTime = Date.now();
 let colorUpdateTimer = 0.0;
@@ -95,6 +99,8 @@ function initFramebuffers () {
     initSunraysFramebuffers();
 }
 
+let flowTexture: TextureObject | null = null;
+
 function main() {
     if (isMobile()) {
         config.DYE_RESOLUTION = 512;
@@ -110,6 +116,9 @@ function main() {
     initDisplay();
     updateKeywords();
     initFramebuffers();
+
+    flowTexture = createTextureAsync("texture.png")
+
     // multipleSplats(parseInt(Math.random() * 20) + 5);
     
     update();
@@ -166,11 +175,18 @@ function render () {
     gl.enable(gl.BLEND);
 
     if (!config.TRANSPARENT) {
-        drawColor(normalizeColor(config.BACK_COLOR));
+        drawTexture()
+        // drawColor(normalizeColor(config.BACK_COLOR));
     } else {
         drawCheckerboard();
     }
     drawDisplay();
+}
+
+function drawTexture () {
+    textureProgram.bind();
+    gl.uniform1i(textureProgram.uniforms.uTexture, flowTexture!.attach(0));
+    generateBuffer(null);
 }
 
 function drawColor (color: RgbColor) {
