@@ -2,7 +2,7 @@ import { gl } from "./webgl";
 import { baseVertexShader } from "./shaders";
 import { Material } from "./material";
 import { bloom } from "./bloom";
-import { dye } from "./fluid";
+import { dye, velocity } from "./fluid";
 import { sunrays } from "./sunrays";
 import { config } from "./config";
 
@@ -73,6 +73,7 @@ export function drawDisplay () {
     displayMaterial.bind();
     if (config.SHADING)
         gl.uniform2f(displayMaterial.uniforms.texelSize, 1.0 / width, 1.0 / height);
+    // gl.uniform1i(displayMaterial.uniforms.uTexture, velocity.read.attach(0));
     gl.uniform1i(displayMaterial.uniforms.uTexture, dye.read.attach(0));
     if (config.BLOOM) {
         gl.uniform1i(displayMaterial.uniforms.uBloom, bloom.attach(1));

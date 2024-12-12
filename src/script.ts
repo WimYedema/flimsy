@@ -30,6 +30,7 @@ import * as dat from 'dat.gui';
 import {default as colorFragmentShaderCode} from './shaders/color.frag';
 import {default as checkerboardFragmentShaderCode} from './shaders/checkerboard.frag';
 import {default as textureFragmentShaderCode} from './shaders/texture.frag';
+import {default as textureVertexShaderCode} from './shaders/texture.vert';
 
 import { baseVertexShader, compileShader } from './shaders';
 
@@ -39,9 +40,9 @@ import { generateBuffer, updateKeywords, drawDisplay, initDisplay, createTexture
 
 import { initBloomFramebuffers, applyBloom, bloom } from './bloom';
 import { initSunraysFramebuffers, applySunrays, sunrays } from './sunrays';
-import { splatPointer } from './splat';
+import { splat, splatPointer } from './splat';
 import {config} from './config';
-import { dye, step, initFluidFramebuffers } from './fluid';
+import { dye, step, initFluidFramebuffers, velocity, pressure } from './fluid';
 import { generateColor, RgbColor } from './color';
 import { pointers } from './canvas';
 import {TextureObject} from './display'
@@ -50,15 +51,16 @@ import {TextureObject} from './display'
 
 const colorShader = compileShader(gl.FRAGMENT_SHADER, colorFragmentShaderCode);
 const checkerboardShader = compileShader(gl.FRAGMENT_SHADER, checkerboardFragmentShaderCode);
-const textureShader = compileShader(gl.FRAGMENT_SHADER, textureFragmentShaderCode);
+const textureFragmentShader = compileShader(gl.FRAGMENT_SHADER, textureFragmentShaderCode);
+const textureVertexShader = compileShader(gl.VERTEX_SHADER, textureVertexShaderCode);
 
 const colorProgram           = new Program(baseVertexShader, colorShader);
 const checkerboardProgram    = new Program(baseVertexShader, checkerboardShader);
-const textureProgram         = new Program(baseVertexShader, textureShader);
+const textureProgram         = new Program(textureVertexShader, textureFragmentShader);
 
 let lastUpdateTime = Date.now();
 let colorUpdateTimer = 0.0;
-
+let deltaY = 0.0;
 
 function startGUI () {
     var gui = new dat.GUI({ width: 300 });
@@ -100,6 +102,7 @@ function initFramebuffers () {
 }
 
 let flowTexture: TextureObject | null = null;
+let dyeTexture: TextureObject | null = null;
 
 function main() {
     if (isMobile()) {
@@ -118,6 +121,7 @@ function main() {
     initFramebuffers();
 
     flowTexture = createTextureAsync("texture.png")
+    dyeTexture = createTextureAsync("dyeTexture.png")
 
     // multipleSplats(parseInt(Math.random() * 20) + 5);
     
@@ -165,6 +169,7 @@ function applyInputs () {
 }
 
 function render () {
+    drawTexture();
     if (config.BLOOM)
         applyBloom(dye.read, bloom);
     if (config.SUNRAYS) {
@@ -175,8 +180,7 @@ function render () {
     gl.enable(gl.BLEND);
 
     if (!config.TRANSPARENT) {
-        drawTexture()
-        // drawColor(normalizeColor(config.BACK_COLOR));
+        drawColor(normalizeColor(config.BACK_COLOR));
     } else {
         drawCheckerboard();
     }
@@ -184,9 +188,27 @@ function render () {
 }
 
 function drawTexture () {
+    // splat(0.5,0.35,0,0,{r:0.1,g:0.1,b:0.1})
+    // splat(0.6,1,0,-4,{r:0.9,g:0.1,b:0.2})
+    deltaY+=0.00005;
+
+    textureProgram.bind();
+    gl.uniform1i(textureProgram.uniforms.uTexture, dyeTexture!.attach(0));
+    gl.uniform1i(textureProgram.uniforms.uTarget, dye.read.attach(1));
+    gl.uniform2f(textureProgram.uniforms.vDelta, 0.0, deltaY);
+    gl.uniform1f(textureProgram.uniforms.offset, 0);
+    gl.uniform1f(textureProgram.uniforms.factor, 1);
+    generateBuffer(dye.write);
+    dye.swap();
+
     textureProgram.bind();
     gl.uniform1i(textureProgram.uniforms.uTexture, flowTexture!.attach(0));
-    generateBuffer(null);
+    gl.uniform1i(textureProgram.uniforms.uTarget, velocity.read.attach(1));
+    gl.uniform2f(textureProgram.uniforms.vDelta, 0.0, deltaY);
+    gl.uniform1f(textureProgram.uniforms.offset, 0.5);
+    gl.uniform1f(textureProgram.uniforms.factor, 300.0);
+    generateBuffer(velocity.write);
+    velocity.swap();
 }
 
 function drawColor (color: RgbColor) {
