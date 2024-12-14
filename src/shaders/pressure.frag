@@ -17,9 +17,9 @@ void main () {
     float C = texture2D(uPressure, vUv).x;
     float divergence = texture2D(uDivergence, vUv).x;
     if (vUv.y<=0.01) {
-        B = B - 20.0;
+        B = B - 10.0;
     } else if (vUv.y>=0.99) {
-        T = T + 20.0;
+        T = T + 10.0;
     }
     float pressure = (L + R + B + T - divergence) * 0.25;
 
