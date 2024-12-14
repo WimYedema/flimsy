@@ -8,12 +8,40 @@ import { config } from "./config";
 
 import {default as displayFragmentShaderCode} from './shaders/display.frag';
 import { FramebufferObject } from "./fbo";
+import { bindColor } from "./color";
 
 const displayShaderSource = displayFragmentShaderCode;
 
 let ditheringTexture = createTextureAsync('LDR_LLL1_0.png');
 
 const displayMaterial = new Material(baseVertexShader, displayShaderSource);
+
+const vertices = new Float32Array([
+    // display
+    -1, -1, 
+    -1, 1, 
+    1, 1, 
+    1, -1,
+    // particle
+    0.5, 0.2887,
+    -0.5, 0.2887,
+    0.0, -0.5774
+]);
+const indices = new Uint16Array([
+    // display
+    0, 1, 2, 0, 2, 3, 
+    // particle
+    4, 5, 6]);
+const objects = {
+    display: {
+        index: 0*Uint16Array.BYTES_PER_ELEMENT, 
+        length: 6,
+    },
+    particle: {
+        index: 6*Uint16Array.BYTES_PER_ELEMENT,
+        length: 3,
+    }
+};
 
 export interface TextureObject {
     texture: WebGLTexture;
@@ -25,11 +53,17 @@ export interface TextureObject {
 export function initDisplay() {
     // Render a rectangle on which we will display the fluid simulation
     gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, -1, 1, 1, 1, 1, -1]), gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array([0, 1, 2, 0, 2, 3]), gl.STATIC_DRAW);
-    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(0);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+
+    if (displayMaterial.activeProgram===null) {
+        throw "displayMaterial not activated"
+    }
+    const positionLocation = gl.getAttribLocation(displayMaterial.activeProgram, 'aPosition');
+    console.log("aPosition", positionLocation)
+    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(positionLocation);
 }
 
 export function generateBuffer(target: FramebufferObject|null, clear = false)  {
@@ -49,7 +83,7 @@ export function generateBuffer(target: FramebufferObject|null, clear = false)  {
         gl.clear(gl.COLOR_BUFFER_BIT);
     }
     // CHECK_FRAMEBUFFER_STATUS();
-    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+    gl.drawElements(gl.TRIANGLES, objects.display.length, gl.UNSIGNED_SHORT, objects.display.index);
 }
 
 // function CHECK_FRAMEBUFFER_STATUS () {
@@ -84,6 +118,9 @@ export function drawDisplay () {
     if (config.SUNRAYS)
         gl.uniform1i(displayMaterial.uniforms.uSunrays, sunrays.attach(3));
     generateBuffer(null);
+
+    bindColor({r: 1, g:0, b:0});
+    gl.drawElements(gl.TRIANGLES, objects.particle.length, gl.UNSIGNED_SHORT, objects.particle.index);
 }
 
 export function createTextureAsync (url: string) : TextureObject {

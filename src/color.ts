@@ -1,8 +1,23 @@
+import {default as colorFragmentShaderCode} from './shaders/color.frag';
+
+import { Program } from "./program";
+import { baseVertexShader, compileShader } from "./shaders";
+import { gl } from "./webgl";
+
+const colorShader = compileShader(gl.FRAGMENT_SHADER, colorFragmentShaderCode);
+const colorProgram = new Program(baseVertexShader, colorShader);
+
 export interface RgbColor {
     r: number;
     g: number;
     b: number;
 }
+
+export function bindColor (color: RgbColor) {
+    colorProgram.bind();
+    gl.uniform4f(colorProgram.uniforms.color, color.r, color.g, color.b, 1);
+}
+
 export function generateColor () : RgbColor {
     let c = HSVtoRGB(Math.random(), 1.0, 1.0);
     c.r *= 0.15;

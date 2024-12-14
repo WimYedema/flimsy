@@ -27,7 +27,6 @@ SOFTWARE.
 import './style.css'
 import * as dat from 'dat.gui';
 
-import {default as colorFragmentShaderCode} from './shaders/color.frag';
 import {default as checkerboardFragmentShaderCode} from './shaders/checkerboard.frag';
 import {default as textureFragmentShaderCode} from './shaders/texture.frag';
 import {default as textureVertexShaderCode} from './shaders/texture.vert';
@@ -42,19 +41,17 @@ import { initBloomFramebuffers, applyBloom, bloom } from './bloom';
 import { initSunraysFramebuffers, applySunrays, sunrays } from './sunrays';
 import { splat, splatPointer } from './splat';
 import {config} from './config';
-import { dye, step, initFluidFramebuffers, velocity, pressure } from './fluid';
-import { generateColor, RgbColor } from './color';
+import { dye, step, initFluidFramebuffers, velocity } from './fluid';
+import { bindColor, generateColor, RgbColor } from './color';
 import { pointers } from './canvas';
 import {TextureObject} from './display'
 
 // Simulation section
 
-const colorShader = compileShader(gl.FRAGMENT_SHADER, colorFragmentShaderCode);
 const checkerboardShader = compileShader(gl.FRAGMENT_SHADER, checkerboardFragmentShaderCode);
 const textureFragmentShader = compileShader(gl.FRAGMENT_SHADER, textureFragmentShaderCode);
 const textureVertexShader = compileShader(gl.VERTEX_SHADER, textureVertexShaderCode);
 
-const colorProgram           = new Program(baseVertexShader, colorShader);
 const checkerboardProgram    = new Program(baseVertexShader, checkerboardShader);
 const textureProgram         = new Program(textureVertexShader, textureFragmentShader);
 
@@ -116,8 +113,8 @@ function main() {
     }
     
     startGUI();
-    initDisplay();
     updateKeywords();
+    initDisplay();
     initFramebuffers();
 
     flowTexture = createTextureAsync("texture.png")
@@ -212,8 +209,7 @@ function drawTexture () {
 }
 
 function drawColor (color: RgbColor) {
-    colorProgram.bind();
-    gl.uniform4f(colorProgram.uniforms.color, color.r, color.g, color.b, 1);
+    bindColor(color);
     generateBuffer(null);
 }
 
