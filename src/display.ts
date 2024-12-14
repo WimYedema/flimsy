@@ -23,9 +23,9 @@ const vertices = new Float32Array([
     1, 1, 
     1, -1,
     // particle
-    0.5, 0.2887,
-    -0.5, 0.2887,
-    0.0, -0.5774
+    0.5*0.025, 0.2887*0.025,
+    -0.5*0.025, 0.2887*0.025,
+    0.0*0.025, -0.5774*0.025
 ]);
 const indices = new Uint16Array([
     // display
