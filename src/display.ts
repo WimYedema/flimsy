@@ -8,7 +8,8 @@ import { config } from "./config";
 
 import {default as displayFragmentShaderCode} from './shaders/display.frag';
 import { FramebufferObject } from "./fbo";
-import { bindColor } from "./color";
+import { bindColor, colorProgram } from "./color";
+import { bindParticle } from "./particle";
 
 const displayShaderSource = displayFragmentShaderCode;
 
@@ -117,9 +118,11 @@ export function drawDisplay () {
     }
     if (config.SUNRAYS)
         gl.uniform1i(displayMaterial.uniforms.uSunrays, sunrays.attach(3));
+    // TODO: Adjust splat for display offset
+    gl.uniform2f(displayMaterial.uniforms.objectPosition, 0, 0.1);
     generateBuffer(null);
 
-    bindColor({r: 1, g:0, b:0});
+    bindParticle(0, 0.5);
     gl.drawElements(gl.TRIANGLES, objects.particle.length, gl.UNSIGNED_SHORT, objects.particle.index);
 }
 

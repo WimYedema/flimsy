@@ -5,7 +5,7 @@ import { baseVertexShader, compileShader } from "./shaders";
 import { gl } from "./webgl";
 
 const colorShader = compileShader(gl.FRAGMENT_SHADER, colorFragmentShaderCode);
-const colorProgram = new Program(baseVertexShader, colorShader);
+export const colorProgram = new Program(baseVertexShader, colorShader);
 
 export interface RgbColor {
     r: number;

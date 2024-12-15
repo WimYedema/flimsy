@@ -7,9 +7,10 @@ uniform float aspectRatio;
 uniform vec3 color;
 uniform vec2 point;
 uniform float radius;
+uniform vec2 objectPosition;
 
 void main () {
-    vec2 p = vUv - point.xy;
+    vec2 p = (vUv+objectPosition) - point.xy;
     p.x *= aspectRatio;
     vec3 splat = exp(-dot(p, p) / radius) * color;
     vec3 base = texture2D(uTarget, vUv).xyz;
