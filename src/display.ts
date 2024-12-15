@@ -122,7 +122,7 @@ export function drawDisplay () {
     gl.uniform2f(displayMaterial.uniforms.objectPosition, 0, 0.1);
     generateBuffer(null);
 
-    bindParticle(0, 0.5);
+    bindParticle(0);
     gl.drawElements(gl.TRIANGLES, objects.particle.length, gl.UNSIGNED_SHORT, objects.particle.index);
 }
 

@@ -45,6 +45,7 @@ import { dye, step, initFluidFramebuffers, velocity } from './fluid';
 import { bindColor, generateColor, RgbColor } from './color';
 import { pointers } from './canvas';
 import {TextureObject} from './display'
+import { initParticles } from './particle';
 
 // Simulation section
 
@@ -115,6 +116,7 @@ function main() {
     startGUI();
     updateKeywords();
     initDisplay();
+    initParticles();
     initFramebuffers();
 
     flowTexture = createTextureAsync("texture.png")
