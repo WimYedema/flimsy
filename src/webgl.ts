@@ -4,6 +4,7 @@ type WebGL = WebGLRenderingContext|WebGL2RenderingContext;
 interface ColorFormat {
     internalFormat: number;
     format: number;
+    numComponents: number;
 }
 interface WebGLContext {
     gl: WebGL, 
@@ -11,7 +12,9 @@ interface WebGLContext {
         formatRGBA: ColorFormat;
         formatRG: ColorFormat;
         formatR: ColorFormat;
+        formatRG32: ColorFormat;
         halfFloatTexType: number;
+        floatTexType: number;
         supportLinearFiltering: boolean;
     }
 }
@@ -57,10 +60,13 @@ function getWebGLContext (canvas: HTMLCanvasElement): WebGLContext {
 
     let gl: WebGL;
     let halfFloat;
+    let oes_float;
     let supportLinearFiltering: boolean;
     let halfFloatTexType;
+    let floatTexType;
     let formatRGBA;
     let formatRG;
+    let formatRG32;
     let formatR;
 
     // @ts-expect-error
@@ -72,9 +78,11 @@ function getWebGLContext (canvas: HTMLCanvasElement): WebGLContext {
         supportLinearFiltering = webgl2.getExtension('OES_texture_float_linear')!==null;
 
         halfFloatTexType = webgl2.HALF_FLOAT;
-        formatRGBA = getWebGL2SupportedFormat(webgl2, webgl2.RGBA16F, webgl2.RGBA, halfFloatTexType);
-        formatRG = getWebGL2SupportedFormat(webgl2, webgl2.RG16F, webgl2.RG, halfFloatTexType);
-        formatR = getWebGL2SupportedFormat(webgl2, webgl2.R16F, webgl2.RED, halfFloatTexType);
+        floatTexType = webgl2.FLOAT;
+        formatRGBA = getWebGL2SupportedFormat(webgl2, 4, webgl2.RGBA16F, webgl2.RGBA, halfFloatTexType);
+        formatRG = getWebGL2SupportedFormat(webgl2, 2, webgl2.RG16F, webgl2.RG, halfFloatTexType);
+        formatR = getWebGL2SupportedFormat(webgl2, 1, webgl2.R16F, webgl2.RED, halfFloatTexType);
+        formatRG32 = getWebGL2SupportedFormat(webgl2, 2, webgl2.RG32F, webgl2.RG, floatTexType);
         gl = webgl2;
     }
     else
@@ -84,15 +92,21 @@ function getWebGLContext (canvas: HTMLCanvasElement): WebGLContext {
         if (webgl===null) {
             throw "No WebGL or WebGL2";
         }
-        halfFloat = webgl.getExtension('OES_texture_half_float');
         supportLinearFiltering = webgl.getExtension('OES_texture_half_float_linear')!==null;
+        halfFloat = webgl.getExtension('OES_texture_half_float');
         if (halfFloat===null) {
             throw "Missing extension OES_texture_half_float"
         }
         halfFloatTexType = halfFloat.HALF_FLOAT_OES;
-        formatRGBA = getWebGLSupportedFormat(webgl, webgl.RGBA, webgl.RGBA, halfFloatTexType);
-        formatRG = getWebGLSupportedFormat(webgl, webgl.RGBA, webgl.RGBA, halfFloatTexType);
-        formatR = getWebGLSupportedFormat(webgl, webgl.RGBA, webgl.RGBA, halfFloatTexType);
+        oes_float = webgl.getExtension('OES_texture_float');
+        if (oes_float===null) {
+            throw "Missing extension OES_texture_float"
+        }
+        floatTexType = webgl.FLOAT;
+        formatRGBA = getWebGLSupportedFormat(webgl, 4, webgl.RGBA, webgl.RGBA, halfFloatTexType);
+        formatRG = getWebGLSupportedFormat(webgl, 4, webgl.RGBA, webgl.RGBA, halfFloatTexType);
+        formatR = getWebGLSupportedFormat(webgl, 4, webgl.RGBA, webgl.RGBA, halfFloatTexType);
+        formatRG32 = getWebGLSupportedFormat(webgl, 4, webgl.RGBA, webgl.RGBA, floatTexType);
         gl = webgl;
     }
 
@@ -106,22 +120,24 @@ function getWebGLContext (canvas: HTMLCanvasElement): WebGLContext {
             formatRGBA,
             formatRG,
             formatR,
+            formatRG32,
             halfFloatTexType,
+            floatTexType,
             supportLinearFiltering
         }
     };
 }
 
-function getWebGL2SupportedFormat (gl: WebGL2RenderingContext, internalFormat: number, format: number, type: number): ColorFormat
+function getWebGL2SupportedFormat (gl: WebGL2RenderingContext, numComponents: number, internalFormat: number, format: number, type: number): ColorFormat
 {
     if (!supportRenderTextureFormat(gl, internalFormat, format, type))
     {
         switch (internalFormat)
         {
             case gl.R16F:
-                return getWebGL2SupportedFormat(gl, gl.RG16F, gl.RG, type);
+                return getWebGL2SupportedFormat(gl, 2, gl.RG16F, gl.RG, type);
             case gl.RG16F:
-                return getWebGL2SupportedFormat(gl, gl.RGBA16F, gl.RGBA, type);
+                return getWebGL2SupportedFormat(gl, 4, gl.RGBA16F, gl.RGBA, type);
             default:
                 throw "Cannot find usable color format"
         }
@@ -129,11 +145,12 @@ function getWebGL2SupportedFormat (gl: WebGL2RenderingContext, internalFormat: n
 
     return {
         internalFormat,
-        format
+        format,
+        numComponents
     }
 }
 
-function getWebGLSupportedFormat (gl: WebGLRenderingContext, internalFormat: number, format: number, type: number): ColorFormat
+function getWebGLSupportedFormat (gl: WebGLRenderingContext, numComponents: number, internalFormat: number, format: number, type: number): ColorFormat
 {
     if (!supportRenderTextureFormat(gl, internalFormat, format, type))
     {
@@ -142,7 +159,8 @@ function getWebGLSupportedFormat (gl: WebGLRenderingContext, internalFormat: num
 
     return {
         internalFormat,
-        format
+        format,
+        numComponents
     }
 }
 

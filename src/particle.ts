@@ -14,14 +14,24 @@ const NUM_PARTICLES = 1;
 let particleFramebuffer: FramebufferObject;
 
 export function initParticles() {
-    const texType = ext.halfFloatTexType;
-    const rgba    = ext.formatRGBA;
-    const rg      = ext.formatRG;
-    const r       = ext.formatR;
+    const texType = ext.floatTexType;
+    const rg      = ext.formatRG32;
     const filtering = ext.supportLinearFiltering ? gl.LINEAR : gl.NEAREST;
 
     particleFramebuffer = createFBO(NUM_PARTICLES, 1, rg.internalFormat, rg.format, texType, filtering);
 
+    const newData = new Float32Array([ 
+        0, 0.5, 0, 1
+    ]); 
+    gl.bindTexture(gl.TEXTURE_2D, particleFramebuffer.texture); 
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 1, 1, rg.format, texType, newData); 
+
+    const buffer = new Float32Array(NUM_PARTICLES * rg.numComponents);
+    
+    gl.bindFramebuffer(gl.FRAMEBUFFER, particleFramebuffer.fbo);
+    gl.readPixels(0, 0, NUM_PARTICLES, 1, rg.format, texType, buffer);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    console.log("particles", buffer);
 }
 
 export function bindParticle (index: number) {
