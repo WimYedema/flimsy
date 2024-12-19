@@ -10,7 +10,14 @@ export interface DoubleFramebufferObject {
     swap: () => void;
 }
 
-export function createDoubleFBO (w: number, h: number, internalFormat: number, format: number, type: number, param: number): DoubleFramebufferObject {
+export function createDoubleFBO(
+    w: number,
+    h: number,
+    internalFormat: number,
+    format: number,
+    type: number,
+    param: number,
+): DoubleFramebufferObject {
     let fbo1 = createFBO(w, h, internalFormat, format, type, param);
     let fbo2 = createFBO(w, h, internalFormat, format, type, param);
 
@@ -19,29 +26,36 @@ export function createDoubleFBO (w: number, h: number, internalFormat: number, f
         height: h,
         texelSizeX: fbo1.texelSizeX,
         texelSizeY: fbo1.texelSizeY,
-        get read () {
+        get read() {
             return fbo1;
         },
-        set read (value) {
+        set read(value) {
             fbo1 = value;
         },
-        get write () {
+        get write() {
             return fbo2;
         },
-        set write (value) {
+        set write(value) {
             fbo2 = value;
         },
-        swap () {
+        swap() {
             let temp = fbo1;
             fbo1 = fbo2;
             fbo2 = temp;
-        }
-    }
+        },
+    };
 }
 
-export function resizeDoubleFBO (target: DoubleFramebufferObject, w: number, h: number, internalFormat: number, format: number, type: number, param: number) : DoubleFramebufferObject {
-    if (target.width == w && target.height == h)
-        return target;
+export function resizeDoubleFBO(
+    target: DoubleFramebufferObject,
+    w: number,
+    h: number,
+    internalFormat: number,
+    format: number,
+    type: number,
+    param: number,
+): DoubleFramebufferObject {
+    if (target.width == w && target.height == h) return target;
     target.read = resizeFBO(target.read, w, h, internalFormat, format, type, param);
     target.write = createFBO(w, h, internalFormat, format, type, param);
     target.width = w;
@@ -50,4 +64,3 @@ export function resizeDoubleFBO (target: DoubleFramebufferObject, w: number, h: 
     target.texelSizeY = 1.0 / h;
     return target;
 }
-

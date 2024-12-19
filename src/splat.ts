@@ -1,25 +1,25 @@
-import { canvas, gl } from './webgl';
-import { baseVertexShader, compileShader } from './shaders';
-import { Program } from './program';
-import { generateBuffer } from './display';
-import { generateColor, RgbColor } from './color';
-import { dye, velocity } from './fluid';
+import { canvas, gl } from "./webgl";
+import { baseVertexShader, compileShader } from "./shaders";
+import { Program } from "./program";
+import { generateBuffer } from "./display";
+import { generateColor, RgbColor } from "./color";
+import { dye, velocity } from "./fluid";
 import { config } from "./config";
 
-import {default as splatFragmentShaderCode} from './shaders/splat.frag';
-import { pointerPrototype } from './pointer';
+import { default as splatFragmentShaderCode } from "./shaders/splat.frag";
+import { pointerPrototype } from "./pointer";
 
 const splatShader = compileShader(gl.FRAGMENT_SHADER, splatFragmentShaderCode);
 
-const splatProgram           = new Program(baseVertexShader, splatShader);
+const splatProgram = new Program(baseVertexShader, splatShader);
 
-export function splatPointer (pointer: pointerPrototype) {
+export function splatPointer(pointer: pointerPrototype) {
     let dx = pointer.deltaX * config.SPLAT_FORCE;
     let dy = pointer.deltaY * config.SPLAT_FORCE;
     splat(pointer.texcoordX, pointer.texcoordY, dx, dy, pointer.color);
 }
 
-export function multipleSplats (amount: number) {
+export function multipleSplats(amount: number) {
     for (let i = 0; i < amount; i++) {
         const color = generateColor();
         color.r *= 10.0;
@@ -33,7 +33,7 @@ export function multipleSplats (amount: number) {
     }
 }
 
-export function splat (x: number, y: number, dx: number, dy: number, color: RgbColor) {
+export function splat(x: number, y: number, dx: number, dy: number, color: RgbColor) {
     splatProgram.bind();
     gl.uniform1i(splatProgram.uniforms.uTarget, velocity.read.attach(0));
     gl.uniform1f(splatProgram.uniforms.aspectRatio, canvas.width / canvas.height);
@@ -49,9 +49,8 @@ export function splat (x: number, y: number, dx: number, dy: number, color: RgbC
     dye.swap();
 }
 
-function correctRadius (radius: number) : number {
+function correctRadius(radius: number): number {
     let aspectRatio = canvas.width / canvas.height;
-    if (aspectRatio > 1)
-        radius *= aspectRatio;
+    if (aspectRatio > 1) radius *= aspectRatio;
     return radius;
 }

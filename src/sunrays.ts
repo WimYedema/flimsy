@@ -1,15 +1,15 @@
-import { gl, ext, getResolution } from './webgl';
-import { createFBO, FramebufferObject } from './fbo';
-import { Program } from './program';
-import { baseVertexShader, compileShader } from './shaders';
-import { config } from './config';
-import { generateBuffer } from './display';
+import { gl, ext, getResolution } from "./webgl";
+import { createFBO, FramebufferObject } from "./fbo";
+import { Program } from "./program";
+import { baseVertexShader, compileShader } from "./shaders";
+import { config } from "./config";
+import { generateBuffer } from "./display";
 
-import {default as blurVertexShaderCode} from './shaders/blur.vert';
-import {default as blurFragmentShaderCode} from './shaders/blur.frag';
+import { default as blurVertexShaderCode } from "./shaders/blur.vert";
+import { default as blurFragmentShaderCode } from "./shaders/blur.frag";
 
-import {default as sunraysMaskFragmentShaderCode} from './shaders/sunraysMask.frag';
-import {default as sunraysFragmentShaderCode} from './shaders/sunrays.frag';
+import { default as sunraysMaskFragmentShaderCode } from "./shaders/sunraysMask.frag";
+import { default as sunraysFragmentShaderCode } from "./shaders/sunrays.frag";
 
 const blurVertexShader = compileShader(gl.VERTEX_SHADER, blurVertexShaderCode);
 const blurShader = compileShader(gl.FRAGMENT_SHADER, blurFragmentShaderCode);
@@ -20,23 +20,23 @@ const sunraysShader = compileShader(gl.FRAGMENT_SHADER, sunraysFragmentShaderCod
 export let sunrays: FramebufferObject;
 let sunraysTemp: FramebufferObject;
 
-const blurProgram            = new Program(blurVertexShader, blurShader);
+const blurProgram = new Program(blurVertexShader, blurShader);
 
-const sunraysMaskProgram     = new Program(baseVertexShader, sunraysMaskShader);
-const sunraysProgram         = new Program(baseVertexShader, sunraysShader);
+const sunraysMaskProgram = new Program(baseVertexShader, sunraysMaskShader);
+const sunraysProgram = new Program(baseVertexShader, sunraysShader);
 
-export function initSunraysFramebuffers () {
+export function initSunraysFramebuffers() {
     let res = getResolution(config.SUNRAYS_RESOLUTION);
 
     const texType = ext.halfFloatTexType;
     const r = ext.formatR;
     const filtering = ext.supportLinearFiltering ? gl.LINEAR : gl.NEAREST;
 
-    sunrays     = createFBO(res.width, res.height, r.internalFormat, r.format, texType, filtering);
+    sunrays = createFBO(res.width, res.height, r.internalFormat, r.format, texType, filtering);
     sunraysTemp = createFBO(res.width, res.height, r.internalFormat, r.format, texType, filtering);
 }
 
-export function applySunrays (source: FramebufferObject, mask: FramebufferObject, destination: FramebufferObject) {
+export function applySunrays(source: FramebufferObject, mask: FramebufferObject, destination: FramebufferObject) {
     gl.disable(gl.BLEND);
     sunraysMaskProgram.bind();
     gl.uniform1i(sunraysMaskProgram.uniforms.uTexture, source.attach(0));
@@ -50,7 +50,7 @@ export function applySunrays (source: FramebufferObject, mask: FramebufferObject
     blur(destination, sunraysTemp, 1);
 }
 
-function blur (target: FramebufferObject, temp: FramebufferObject, iterations: number) {
+function blur(target: FramebufferObject, temp: FramebufferObject, iterations: number) {
     blurProgram.bind();
     for (let i = 0; i < iterations; i++) {
         gl.uniform2f(blurProgram.uniforms.texelSize, target.texelSizeX, 0.0);
@@ -62,4 +62,3 @@ function blur (target: FramebufferObject, temp: FramebufferObject, iterations: n
         generateBuffer(target);
     }
 }
-

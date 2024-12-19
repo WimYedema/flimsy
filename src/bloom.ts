@@ -1,12 +1,12 @@
-import {default as bloomPrefilterFragmentShaderCode} from './shaders/bloomPrefilter.frag';
-import {default as bloomBlurFragmentShaderCode} from './shaders/bloomBlur.frag';
-import {default as bloomFinalFragmentShaderCode} from './shaders/bloomFinal.frag';
-import { compileShader, baseVertexShader } from './shaders';
-import { Program } from './program';
-import { gl, ext, getResolution } from './webgl';
-import { createFBO, FramebufferObject } from './fbo';
-import { generateBuffer } from './display';
-import {config} from './config.js';
+import { default as bloomPrefilterFragmentShaderCode } from "./shaders/bloomPrefilter.frag";
+import { default as bloomBlurFragmentShaderCode } from "./shaders/bloomBlur.frag";
+import { default as bloomFinalFragmentShaderCode } from "./shaders/bloomFinal.frag";
+import { compileShader, baseVertexShader } from "./shaders";
+import { Program } from "./program";
+import { gl, ext, getResolution } from "./webgl";
+import { createFBO, FramebufferObject } from "./fbo";
+import { generateBuffer } from "./display";
+import { config } from "./config.js";
 
 const bloomPrefilterShader = compileShader(gl.FRAGMENT_SHADER, bloomPrefilterFragmentShaderCode);
 const bloomBlurShader = compileShader(gl.FRAGMENT_SHADER, bloomBlurFragmentShaderCode);
@@ -15,11 +15,11 @@ const bloomFinalShader = compileShader(gl.FRAGMENT_SHADER, bloomFinalFragmentSha
 export let bloom: FramebufferObject;
 let bloomFramebuffers: FramebufferObject[] = [];
 
-const bloomPrefilterProgram  = new Program(baseVertexShader, bloomPrefilterShader);
-const bloomBlurProgram       = new Program(baseVertexShader, bloomBlurShader);
-const bloomFinalProgram      = new Program(baseVertexShader, bloomFinalShader);
+const bloomPrefilterProgram = new Program(baseVertexShader, bloomPrefilterShader);
+const bloomBlurProgram = new Program(baseVertexShader, bloomBlurShader);
+const bloomFinalProgram = new Program(baseVertexShader, bloomFinalShader);
 
-export function initBloomFramebuffers () {
+export function initBloomFramebuffers() {
     let res = getResolution(config.BLOOM_RESOLUTION);
 
     const texType = ext.halfFloatTexType;
@@ -29,8 +29,7 @@ export function initBloomFramebuffers () {
     bloom = createFBO(res.width, res.height, rgba.internalFormat, rgba.format, texType, filtering);
 
     bloomFramebuffers.length = 0;
-    for (let i = 0; i < config.BLOOM_ITERATIONS; i++)
-    {
+    for (let i = 0; i < config.BLOOM_ITERATIONS; i++) {
         let width = res.width >> (i + 1);
         let height = res.height >> (i + 1);
 
@@ -41,9 +40,8 @@ export function initBloomFramebuffers () {
     }
 }
 
-export function applyBloom (source: FramebufferObject, destination: FramebufferObject) {
-    if (bloomFramebuffers.length < 2)
-        return;
+export function applyBloom(source: FramebufferObject, destination: FramebufferObject) {
+    if (bloomFramebuffers.length < 2) return;
 
     let last: FramebufferObject = destination;
 

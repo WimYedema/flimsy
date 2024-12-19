@@ -6,42 +6,50 @@ import { dye, velocity } from "./fluid";
 import { sunrays } from "./sunrays";
 import { config } from "./config";
 
-import {default as displayFragmentShaderCode} from './shaders/display.frag';
+import { default as displayFragmentShaderCode } from "./shaders/display.frag";
 import { FramebufferObject } from "./fbo";
 import { bindColor, colorProgram } from "./color";
-import { bindParticle } from "./particle";
+import { bindParticle, NUM_PARTICLES } from "./particle";
 
 const displayShaderSource = displayFragmentShaderCode;
 
-let ditheringTexture = createTextureAsync('LDR_LLL1_0.png');
+let ditheringTexture = createTextureAsync("LDR_LLL1_0.png");
 
 const displayMaterial = new Material(baseVertexShader, displayShaderSource);
 
 const vertices = new Float32Array([
     // display
-    -1, -1, 
-    -1, 1, 
-    1, 1, 
-    1, -1,
+    -1,
+    -1,
+    -1,
+    1,
+    1,
+    1,
+    1,
+    -1,
     // particle
-    0.5*0.025, 0.2887*0.025,
-    -0.5*0.025, 0.2887*0.025,
-    0.0*0.025, -0.5774*0.025
+    0.5 * 0.025,
+    0.2887 * 0.025,
+    -0.5 * 0.025,
+    0.2887 * 0.025,
+    0.0 * 0.025,
+    -0.5774 * 0.025,
 ]);
 const indices = new Uint16Array([
     // display
-    0, 1, 2, 0, 2, 3, 
+    0, 1, 2, 0, 2, 3,
     // particle
-    4, 5, 6]);
+    4, 5, 6,
+]);
 const objects = {
     display: {
-        index: 0*Uint16Array.BYTES_PER_ELEMENT, 
+        index: 0 * Uint16Array.BYTES_PER_ELEMENT,
         length: 6,
     },
     particle: {
-        index: 6*Uint16Array.BYTES_PER_ELEMENT,
+        index: 6 * Uint16Array.BYTES_PER_ELEMENT,
         length: 3,
-    }
+    },
 };
 
 export interface TextureObject {
@@ -58,28 +66,24 @@ export function initDisplay() {
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
 
-    if (displayMaterial.activeProgram===null) {
-        throw "displayMaterial not activated"
+    if (displayMaterial.activeProgram === null) {
+        throw "displayMaterial not activated";
     }
-    const positionLocation = gl.getAttribLocation(displayMaterial.activeProgram, 'aPosition');
-    console.log("aPosition", positionLocation)
+    const positionLocation = gl.getAttribLocation(displayMaterial.activeProgram, "aPosition");
+    console.log("aPosition", positionLocation);
     gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(positionLocation);
 }
 
-export function generateBuffer(target: FramebufferObject|null, clear = false)  {
-    if (target == null)
-    {
+export function generateBuffer(target: FramebufferObject | null, clear = false) {
+    if (target == null) {
         gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    }
-    else
-    {
+    } else {
         gl.viewport(0, 0, target.width, target.height);
         gl.bindFramebuffer(gl.FRAMEBUFFER, target.fbo);
     }
-    if (clear)
-    {
+    if (clear) {
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.clear(gl.COLOR_BUFFER_BIT);
     }
@@ -93,7 +97,7 @@ export function generateBuffer(target: FramebufferObject|null, clear = false)  {
 //         console.trace("Framebuffer error: " + status);
 // }
 
-export function updateKeywords () {
+export function updateKeywords() {
     let displayKeywords = [];
     if (config.SHADING) displayKeywords.push("SHADING");
     if (config.BLOOM) displayKeywords.push("BLOOM");
@@ -101,13 +105,12 @@ export function updateKeywords () {
     displayMaterial.setKeywords(displayKeywords);
 }
 
-export function drawDisplay () {
+export function drawDisplay() {
     let width = gl.drawingBufferWidth;
     let height = gl.drawingBufferHeight;
 
     displayMaterial.bind();
-    if (config.SHADING)
-        gl.uniform2f(displayMaterial.uniforms.texelSize, 1.0 / width, 1.0 / height);
+    if (config.SHADING) gl.uniform2f(displayMaterial.uniforms.texelSize, 1.0 / width, 1.0 / height);
     // gl.uniform1i(displayMaterial.uniforms.uTexture, velocity.read.attach(0));
     gl.uniform1i(displayMaterial.uniforms.uTexture, dye.read.attach(0));
     if (config.BLOOM) {
@@ -116,8 +119,7 @@ export function drawDisplay () {
         let scale = getTextureScale(ditheringTexture, width, height);
         gl.uniform2f(displayMaterial.uniforms.ditherScale, scale.x, scale.y);
     }
-    if (config.SUNRAYS)
-        gl.uniform1i(displayMaterial.uniforms.uSunrays, sunrays.attach(3));
+    if (config.SUNRAYS) gl.uniform1i(displayMaterial.uniforms.uSunrays, sunrays.attach(3));
     // TODO: Adjust splat for display offset
     gl.uniform2f(displayMaterial.uniforms.objectPosition, 0, 0.1);
     generateBuffer(null);
@@ -128,10 +130,10 @@ export function drawDisplay () {
     }
 }
 
-export function createTextureAsync (url: string) : TextureObject {
+export function createTextureAsync(url: string): TextureObject {
     let texture = gl.createTexture();
-    if (texture===null) {
-        throw "Could not create texture"
+    if (texture === null) {
+        throw "Could not create texture";
     }
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -144,11 +146,11 @@ export function createTextureAsync (url: string) : TextureObject {
         texture,
         width: 1,
         height: 1,
-        attach (id: number) {
+        attach(id: number) {
             gl.activeTexture(gl.TEXTURE0 + id);
             gl.bindTexture(gl.TEXTURE_2D, texture);
             return id;
-        }
+        },
     };
 
     let image = new Image();
@@ -163,9 +165,9 @@ export function createTextureAsync (url: string) : TextureObject {
     return obj;
 }
 
-function getTextureScale (texture: TextureObject, width: number, height: number) {
+function getTextureScale(texture: TextureObject, width: number, height: number) {
     return {
         x: width / texture.width,
-        y: height / texture.height
+        y: height / texture.height,
     };
 }

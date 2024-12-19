@@ -23,11 +23,11 @@ export class pointerPrototype {
         this.deltaY = 0;
         this.down = false;
         this.moved = false;
-        this.color = {r:30, g:0, b:300};
+        this.color = { r: 30, g: 0, b: 300 };
     }
 }
 
-export function updatePointerDownData (pointer: pointerPrototype, id: number, posX: number, posY: number) {
+export function updatePointerDownData(pointer: pointerPrototype, id: number, posX: number, posY: number) {
     pointer.id = id;
     pointer.down = true;
     pointer.moved = false;
@@ -40,7 +40,7 @@ export function updatePointerDownData (pointer: pointerPrototype, id: number, po
     pointer.color = generateColor();
 }
 
-export function updatePointerMoveData (pointer: pointerPrototype, posX: number, posY: number) {
+export function updatePointerMoveData(pointer: pointerPrototype, posX: number, posY: number) {
     pointer.prevTexcoordX = pointer.texcoordX;
     pointer.prevTexcoordY = pointer.texcoordY;
     pointer.texcoordX = posX / canvas.width;
@@ -50,17 +50,17 @@ export function updatePointerMoveData (pointer: pointerPrototype, posX: number, 
     pointer.moved = Math.abs(pointer.deltaX) > 0 || Math.abs(pointer.deltaY) > 0;
 }
 
-export function updatePointerUpData (pointer: pointerPrototype) {
+export function updatePointerUpData(pointer: pointerPrototype) {
     pointer.down = false;
 }
 
-function correctDeltaX (delta: number) : number {
+function correctDeltaX(delta: number): number {
     let aspectRatio = canvas.width / canvas.height;
     if (aspectRatio < 1) delta *= aspectRatio;
     return delta;
 }
 
-function correctDeltaY (delta: number) : number {
+function correctDeltaY(delta: number): number {
     let aspectRatio = canvas.width / canvas.height;
     if (aspectRatio > 1) delta /= aspectRatio;
     return delta;
