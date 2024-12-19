@@ -41,11 +41,11 @@ import { initBloomFramebuffers, applyBloom, bloom } from './bloom';
 import { initSunraysFramebuffers, applySunrays, sunrays } from './sunrays';
 import { splat, splatPointer } from './splat';
 import {config} from './config';
-import { dye, step, initFluidFramebuffers, velocity } from './fluid';
+import { dye, step as updateFluid, initFluidFramebuffers, velocity } from './fluid';
 import { bindColor, generateColor, RgbColor } from './color';
 import { pointers } from './canvas';
 import {TextureObject} from './display'
-import { initParticles } from './particle';
+import { initParticles, updateParticles } from './particle';
 
 // Simulation section
 
@@ -133,7 +133,8 @@ function update () {
         initFramebuffers();
     updateColors(dt);
     applyInputs();
-    step(dt);
+    updateParticles(dt);
+    updateFluid(dt);
     render();
     requestAnimationFrame(update);
 }

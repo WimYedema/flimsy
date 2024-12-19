@@ -2,7 +2,7 @@ precision highp float;
 
 attribute vec2 aPosition;
 varying vec2 vUv;
-uniform int particleIndex;
+uniform float particleIndex;
 uniform sampler2D uParticles;
 
 void main () {

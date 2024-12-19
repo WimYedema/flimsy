@@ -122,8 +122,10 @@ export function drawDisplay () {
     gl.uniform2f(displayMaterial.uniforms.objectPosition, 0, 0.1);
     generateBuffer(null);
 
-    bindParticle(0);
-    gl.drawElements(gl.TRIANGLES, objects.particle.length, gl.UNSIGNED_SHORT, objects.particle.index);
+    for (let index = 0; index < NUM_PARTICLES; index++) {
+        bindParticle(index);
+        gl.drawElements(gl.TRIANGLES, objects.particle.length, gl.UNSIGNED_SHORT, objects.particle.index);
+    }
 }
 
 export function createTextureAsync (url: string) : TextureObject {
