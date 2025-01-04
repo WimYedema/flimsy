@@ -1,0 +1,46 @@
+{
+    "vertices": [
+        [0.0125, 0.0072175],
+        [-0.0125, 0.0072175],
+        [0.0, -0.014435]
+    ],
+    "objects": {
+        "particle": {
+            "indices": [
+                0,1,2
+            ]
+        }
+    },
+    "canvas": [
+        {
+            "entity": "particle",
+            "objects": [
+                {
+                    "object": "particle",
+                    "at": [0.0, 0.9],
+                    "color": [1, 0, 0]
+                },
+                {
+                    "object": "particle",
+                    "at": [0.1, 0.9],
+                    "color": [1, 0, 0]
+                },
+                {
+                    "object": "particle",
+                    "at": [-0.1, 0.9],
+                    "color": [0, 1, 0]
+                },
+                {
+                    "object": "particle",
+                    "at": [0.2, 0.9],
+                    "color": [1, 0, 0]
+                },
+                {
+                    "object": "particle",
+                    "at": [-0.2, 0.9],
+                    "color": [1, 0, 0]
+                }        
+            ]
+        }
+    ]
+}

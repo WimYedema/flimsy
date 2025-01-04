@@ -8,49 +8,13 @@ import { config } from "./config";
 
 import { default as displayFragmentShaderCode } from "./shaders/display.frag";
 import { FramebufferObject } from "./fbo";
-import { bindColor, colorProgram } from "./color";
-import { bindParticle, NUM_PARTICLES } from "./particle";
+import { scene } from "./scene_manager";
 
 const displayShaderSource = displayFragmentShaderCode;
 
 let ditheringTexture = createTextureAsync("LDR_LLL1_0.png");
 
 const displayMaterial = new Material(baseVertexShader, displayShaderSource);
-
-const vertices = new Float32Array([
-    // display
-    -1,
-    -1,
-    -1,
-    1,
-    1,
-    1,
-    1,
-    -1,
-    // particle
-    0.5 * 0.025,
-    0.2887 * 0.025,
-    -0.5 * 0.025,
-    0.2887 * 0.025,
-    0.0 * 0.025,
-    -0.5774 * 0.025,
-]);
-const indices = new Uint16Array([
-    // display
-    0, 1, 2, 0, 2, 3,
-    // particle
-    4, 5, 6,
-]);
-const objects = {
-    display: {
-        index: 0 * Uint16Array.BYTES_PER_ELEMENT,
-        length: 6,
-    },
-    particle: {
-        index: 6 * Uint16Array.BYTES_PER_ELEMENT,
-        length: 3,
-    },
-};
 
 export interface TextureObject {
     texture: WebGLTexture;
@@ -61,10 +25,7 @@ export interface TextureObject {
 
 export function initDisplay() {
     // Render a rectangle on which we will display the fluid simulation
-    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
-    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+    scene.bind();
 
     if (displayMaterial.activeProgram === null) {
         throw "displayMaterial not activated";
@@ -88,7 +49,7 @@ export function generateBuffer(target: FramebufferObject | null, clear = false) 
         gl.clear(gl.COLOR_BUFFER_BIT);
     }
     // CHECK_FRAMEBUFFER_STATUS();
-    gl.drawElements(gl.TRIANGLES, objects.display.length, gl.UNSIGNED_SHORT, objects.display.index);
+    scene.objects.display.draw();
 }
 
 // function CHECK_FRAMEBUFFER_STATUS () {
@@ -123,11 +84,6 @@ export function drawDisplay() {
     // TODO: Adjust splat for display offset
     gl.uniform2f(displayMaterial.uniforms.objectPosition, 0, 0.1);
     generateBuffer(null);
-
-    for (let index = 0; index < NUM_PARTICLES; index++) {
-        bindParticle(index);
-        gl.drawElements(gl.TRIANGLES, objects.particle.length, gl.UNSIGNED_SHORT, objects.particle.index);
-    }
 }
 
 export function createTextureAsync(url: string): TextureObject {

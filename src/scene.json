@@ -1,0 +1,17 @@
+{
+    "vertices": [
+        [0, 0, 0],
+        [1, 1, 1]
+    ],
+    "objects": {
+        "example": {
+            "indices": [0,1, 2, 4, 5]
+        },
+        "foo": {
+            "indices": [2,3]
+        },
+        "bar": {
+            "indices": [9, 8, 7]
+        }
+    }
+}

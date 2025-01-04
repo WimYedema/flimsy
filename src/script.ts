@@ -45,7 +45,7 @@ import { dye, step as updateFluid, initFluidFramebuffers, velocity } from "./flu
 import { bindColor, generateColor, RgbColor } from "./color";
 import { pointers } from "./canvas";
 import { TextureObject } from "./display";
-import { initParticles, updateParticles } from "./particle";
+import { drawParticles, initParticles, updateParticles } from "./particle";
 
 // Simulation section
 
@@ -196,6 +196,7 @@ function render() {
         drawCheckerboard();
     }
     drawDisplay();
+    drawParticles();
 }
 
 function drawTexture() {
