@@ -4,8 +4,7 @@ import { default as bloomFinalFragmentShaderCode } from "./shaders/bloomFinal.fr
 import { compileShader, baseVertexShader } from "./shaders";
 import { Program } from "./program";
 import { gl, ext, getResolution } from "./webgl";
-import { createFBO, FramebufferObject } from "./fbo";
-import { generateBuffer } from "./display";
+import { FramebufferObject } from "./fbo";
 import { config } from "./config.js";
 
 const bloomPrefilterShader = compileShader(gl.FRAGMENT_SHADER, bloomPrefilterFragmentShaderCode);
@@ -26,7 +25,7 @@ export function initBloomFramebuffers() {
     const rgba = ext.formatRGBA;
     const filtering = ext.supportLinearFiltering ? gl.LINEAR : gl.NEAREST;
 
-    bloom = createFBO(res.width, res.height, rgba.internalFormat, rgba.format, texType, filtering);
+    bloom = new FramebufferObject(res.width, res.height, rgba.internalFormat, rgba.format, texType, filtering);
 
     bloomFramebuffers.length = 0;
     for (let i = 0; i < config.BLOOM_ITERATIONS; i++) {
@@ -35,7 +34,7 @@ export function initBloomFramebuffers() {
 
         if (width < 2 || height < 2) break;
 
-        let fbo = createFBO(width, height, rgba.internalFormat, rgba.format, texType, filtering);
+        let fbo = new FramebufferObject(width, height, rgba.internalFormat, rgba.format, texType, filtering);
         bloomFramebuffers.push(fbo);
     }
 }
@@ -51,17 +50,17 @@ export function applyBloom(source: FramebufferObject, destination: FramebufferOb
     let curve0 = config.BLOOM_THRESHOLD - knee;
     let curve1 = knee * 2;
     let curve2 = 0.25 / knee;
-    gl.uniform3f(bloomPrefilterProgram.uniforms.curve, curve0, curve1, curve2);
-    gl.uniform1f(bloomPrefilterProgram.uniforms.threshold, config.BLOOM_THRESHOLD);
-    gl.uniform1i(bloomPrefilterProgram.uniforms.uTexture, source.attach(0));
-    generateBuffer(last);
+    bloomPrefilterProgram.uniforms.curve.assign(curve0, curve1, curve2);
+    bloomPrefilterProgram.uniforms.threshold.assign(config.BLOOM_THRESHOLD);
+    bloomPrefilterProgram.uniforms.uTexture.assign(source.attach(0));
+    last.generateBuffer();
 
     bloomBlurProgram.bind();
     for (let i = 0; i < bloomFramebuffers.length; i++) {
         let dest = bloomFramebuffers[i];
-        gl.uniform2f(bloomBlurProgram.uniforms.texelSize, last.texelSizeX, last.texelSizeY);
-        gl.uniform1i(bloomBlurProgram.uniforms.uTexture, last.attach(0));
-        generateBuffer(dest);
+        bloomBlurProgram.uniforms.texelSize.assign(last.texelSizeX, last.texelSizeY);
+        bloomBlurProgram.uniforms.uTexture.assign(last.attach(0));
+        dest.generateBuffer();
         last = dest;
     }
 
@@ -70,17 +69,17 @@ export function applyBloom(source: FramebufferObject, destination: FramebufferOb
 
     for (let i = bloomFramebuffers.length - 2; i >= 0; i--) {
         let baseTex = bloomFramebuffers[i];
-        gl.uniform2f(bloomBlurProgram.uniforms.texelSize, last.texelSizeX, last.texelSizeY);
-        gl.uniform1i(bloomBlurProgram.uniforms.uTexture, last.attach(0));
+        bloomBlurProgram.uniforms.texelSize.assign(last.texelSizeX, last.texelSizeY);
+        bloomBlurProgram.uniforms.uTexture.assign(last.attach(0));
         gl.viewport(0, 0, baseTex.width, baseTex.height);
-        generateBuffer(baseTex);
+        baseTex.generateBuffer();
         last = baseTex;
     }
 
     gl.disable(gl.BLEND);
     bloomFinalProgram.bind();
-    gl.uniform2f(bloomFinalProgram.uniforms.texelSize, last.texelSizeX, last.texelSizeY);
-    gl.uniform1i(bloomFinalProgram.uniforms.uTexture, last.attach(0));
-    gl.uniform1f(bloomFinalProgram.uniforms.intensity, config.BLOOM_INTENSITY);
-    generateBuffer(destination);
+    bloomFinalProgram.uniforms.texelSize.assign(last.texelSizeX, last.texelSizeY);
+    bloomFinalProgram.uniforms.uTexture.assign(last.attach(0));
+    bloomFinalProgram.uniforms.intensity.assign(config.BLOOM_INTENSITY);
+    destination.generateBuffer();
 }

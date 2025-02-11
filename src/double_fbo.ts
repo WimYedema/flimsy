@@ -1,66 +1,57 @@
-import { createFBO, FramebufferObject, resizeFBO } from "./fbo";
+import { FramebufferObject } from "./fbo";
+import { gl } from "./webgl";
 
-export interface DoubleFramebufferObject {
-    width: number;
-    height: number;
+export class DoubleFramebufferObject {
     texelSizeX: number;
     texelSizeY: number;
-    read: FramebufferObject;
-    write: FramebufferObject;
-    swap: () => void;
-}
+    private fbo1: FramebufferObject;
+    private fbo2: FramebufferObject;
 
-export function createDoubleFBO(
-    w: number,
-    h: number,
-    internalFormat: number,
-    format: number,
-    type: number,
-    param: number,
-): DoubleFramebufferObject {
-    let fbo1 = createFBO(w, h, internalFormat, format, type, param);
-    let fbo2 = createFBO(w, h, internalFormat, format, type, param);
+    constructor(w: number, h: number, internalFormat: number, format: number, type: number, param: number) {
+        this.fbo1 = new FramebufferObject(w, h, internalFormat, format, type, param);
+        this.fbo2 = new FramebufferObject(w, h, internalFormat, format, type, param);
+        this.texelSizeX = this.fbo1.texelSizeX;
+        this.texelSizeY = this.fbo1.texelSizeY;
+    }
 
-    return {
-        width: w,
-        height: h,
-        texelSizeX: fbo1.texelSizeX,
-        texelSizeY: fbo1.texelSizeY,
-        get read() {
-            return fbo1;
-        },
-        set read(value) {
-            fbo1 = value;
-        },
-        get write() {
-            return fbo2;
-        },
-        set write(value) {
-            fbo2 = value;
-        },
-        swap() {
-            let temp = fbo1;
-            fbo1 = fbo2;
-            fbo2 = temp;
-        },
-    };
-}
+    get width() {
+        return this.fbo1.width;
+    }
+    get height() {
+        return this.fbo1.height;
+    }
+    get read() {
+        return this.fbo1;
+    }
 
-export function resizeDoubleFBO(
-    target: DoubleFramebufferObject,
-    w: number,
-    h: number,
-    internalFormat: number,
-    format: number,
-    type: number,
-    param: number,
-): DoubleFramebufferObject {
-    if (target.width == w && target.height == h) return target;
-    target.read = resizeFBO(target.read, w, h, internalFormat, format, type, param);
-    target.write = createFBO(w, h, internalFormat, format, type, param);
-    target.width = w;
-    target.height = h;
-    target.texelSizeX = 1.0 / w;
-    target.texelSizeY = 1.0 / h;
-    return target;
+    set read(value) {
+        this.fbo1 = value;
+    }
+
+    get write() {
+        return this.fbo2;
+    }
+
+    set write(value) {
+        this.fbo2 = value;
+    }
+
+    swap() {
+        let temp = this.fbo1;
+        this.fbo1 = this.fbo2;
+        this.fbo2 = temp;
+    }
+
+    generateBuffer() {
+        this.write.generateBuffer();
+    }
+
+    resize(w: number, h: number): DoubleFramebufferObject {
+        if (this.width == w && this.height == h) return this;
+        this.read = this.read.resize(w, h, "copy");
+        this.write = this.write.resize(w, h, "clear");
+        this.texelSizeX = 1.0 / w;
+        this.texelSizeY = 1.0 / h;
+        return this;
+    }
 }

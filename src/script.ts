@@ -205,33 +205,33 @@ function drawTexture() {
     deltaY += 0.00005;
 
     textureProgram.bind();
-    gl.uniform1i(textureProgram.uniforms.uTexture, dyeTexture!.attach(0));
-    gl.uniform1i(textureProgram.uniforms.uTarget, dye.read.attach(1));
-    gl.uniform2f(textureProgram.uniforms.vDelta, 0.0, deltaY);
-    gl.uniform1f(textureProgram.uniforms.offset, 0);
-    gl.uniform1f(textureProgram.uniforms.factor, 1);
-    generateBuffer(dye.write);
+    textureProgram.uniforms.uTexture.assign(dyeTexture!.attach(0));
+    textureProgram.uniforms.uTarget.assign(dye.read.attach(1));
+    textureProgram.uniforms.vDelta.assign(0.0, deltaY);
+    textureProgram.uniforms.offset.assign(0);
+    textureProgram.uniforms.factor.assign(1);
+    dye.generateBuffer();
     dye.swap();
 
     textureProgram.bind();
-    gl.uniform1i(textureProgram.uniforms.uTexture, flowTexture!.attach(0));
-    gl.uniform1i(textureProgram.uniforms.uTarget, velocity.read.attach(1));
-    gl.uniform2f(textureProgram.uniforms.vDelta, 0.0, deltaY);
-    gl.uniform1f(textureProgram.uniforms.offset, 0.5);
-    gl.uniform1f(textureProgram.uniforms.factor, 300.0);
-    generateBuffer(velocity.write);
+    textureProgram.uniforms.uTexture.assign(flowTexture!.attach(0));
+    textureProgram.uniforms.uTarget.assign(velocity.read.attach(1));
+    textureProgram.uniforms.vDelta.assign(0.0, deltaY);
+    textureProgram.uniforms.offset.assign(0.5);
+    textureProgram.uniforms.factor.assign(300.0);
+    velocity.generateBuffer();
     velocity.swap();
 }
 
 function drawColor(color: RgbColor) {
     bindColor(color);
-    generateBuffer(null);
+    generateBuffer();
 }
 
 function drawCheckerboard() {
     checkerboardProgram.bind();
-    gl.uniform1f(checkerboardProgram.uniforms.aspectRatio, canvas.width / canvas.height);
-    generateBuffer(null);
+    checkerboardProgram.uniforms.aspectRatio.assign(canvas.width / canvas.height);
+    generateBuffer();
 }
 
 function normalizeColor(input: RgbColor): RgbColor {

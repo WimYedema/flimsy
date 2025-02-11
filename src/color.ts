@@ -15,7 +15,7 @@ export interface RgbColor {
 
 export function bindColor(color: RgbColor) {
     colorProgram.bind();
-    gl.uniform4f(colorProgram.uniforms.color, color.r, color.g, color.b, 1);
+    colorProgram.uniforms.color.assign(color.r, color.g, color.b, 1);
 }
 
 export function generateColor(): RgbColor {

@@ -10,6 +10,12 @@ In a powershell terminal npm using:
 fnm env --use-on-cd | Out-String | Invoke-Expression
 ```
 
+Then:
+
+```powershell
+npm run dev
+```
+
 # Board
 
 ```mermaid
@@ -17,7 +23,7 @@ kanban
    Challenges
      [How can I integrate particle position into the level design?]
      [How can I integrate sound into the level design?]
-     [How can I make levels that a very long?]
+     [How can I make levels that are very long?]
      [How can I make the gameplay interesting?]
    Exploring
      [How can I make it easier to relate velocity and dye in the level designs?]

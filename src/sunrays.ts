@@ -1,9 +1,8 @@
 import { gl, ext, getResolution } from "./webgl";
-import { createFBO, FramebufferObject } from "./fbo";
+import { FramebufferObject } from "./fbo";
 import { Program } from "./program";
 import { baseVertexShader, compileShader } from "./shaders";
 import { config } from "./config";
-import { generateBuffer } from "./display";
 
 import { default as blurVertexShaderCode } from "./shaders/blur.vert";
 import { default as blurFragmentShaderCode } from "./shaders/blur.frag";
@@ -32,20 +31,20 @@ export function initSunraysFramebuffers() {
     const r = ext.formatR;
     const filtering = ext.supportLinearFiltering ? gl.LINEAR : gl.NEAREST;
 
-    sunrays = createFBO(res.width, res.height, r.internalFormat, r.format, texType, filtering);
-    sunraysTemp = createFBO(res.width, res.height, r.internalFormat, r.format, texType, filtering);
+    sunrays = new FramebufferObject(res.width, res.height, r.internalFormat, r.format, texType, filtering);
+    sunraysTemp = new FramebufferObject(res.width, res.height, r.internalFormat, r.format, texType, filtering);
 }
 
 export function applySunrays(source: FramebufferObject, mask: FramebufferObject, destination: FramebufferObject) {
     gl.disable(gl.BLEND);
     sunraysMaskProgram.bind();
-    gl.uniform1i(sunraysMaskProgram.uniforms.uTexture, source.attach(0));
-    generateBuffer(mask);
+    sunraysMaskProgram.uniforms.uTexture.assign(source.attach(0));
+    mask.generateBuffer();
 
     sunraysProgram.bind();
-    gl.uniform1f(sunraysProgram.uniforms.weight, config.SUNRAYS_WEIGHT);
-    gl.uniform1i(sunraysProgram.uniforms.uTexture, mask.attach(0));
-    generateBuffer(destination);
+    sunraysProgram.uniforms.weight.assign(config.SUNRAYS_WEIGHT);
+    sunraysProgram.uniforms.uTexture.assign(mask.attach(0));
+    destination.generateBuffer();
 
     blur(destination, sunraysTemp, 1);
 }
@@ -53,12 +52,12 @@ export function applySunrays(source: FramebufferObject, mask: FramebufferObject,
 function blur(target: FramebufferObject, temp: FramebufferObject, iterations: number) {
     blurProgram.bind();
     for (let i = 0; i < iterations; i++) {
-        gl.uniform2f(blurProgram.uniforms.texelSize, target.texelSizeX, 0.0);
-        gl.uniform1i(blurProgram.uniforms.uTexture, target.attach(0));
-        generateBuffer(temp);
+        blurProgram.uniforms.texelSize.assign(target.texelSizeX, 0.0);
+        blurProgram.uniforms.uTexture.assign(target.attach(0));
+        temp.generateBuffer();
 
-        gl.uniform2f(blurProgram.uniforms.texelSize, 0.0, target.texelSizeY);
-        gl.uniform1i(blurProgram.uniforms.uTexture, temp.attach(0));
-        generateBuffer(target);
+        blurProgram.uniforms.texelSize.assign(0.0, target.texelSizeY);
+        blurProgram.uniforms.uTexture.assign(temp.attach(0));
+        target.generateBuffer();
     }
 }

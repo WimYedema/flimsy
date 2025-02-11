@@ -36,14 +36,9 @@ export function initDisplay() {
     gl.enableVertexAttribArray(positionLocation);
 }
 
-export function generateBuffer(target: FramebufferObject | null, clear = false) {
-    if (target == null) {
-        gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    } else {
-        gl.viewport(0, 0, target.width, target.height);
-        gl.bindFramebuffer(gl.FRAMEBUFFER, target.fbo);
-    }
+export function generateBuffer(clear = false) {
+    gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     if (clear) {
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.clear(gl.COLOR_BUFFER_BIT);
@@ -71,19 +66,19 @@ export function drawDisplay() {
     let height = gl.drawingBufferHeight;
 
     displayMaterial.bind();
-    if (config.SHADING) gl.uniform2f(displayMaterial.uniforms.texelSize, 1.0 / width, 1.0 / height);
-    // gl.uniform1i(displayMaterial.uniforms.uTexture, velocity.read.attach(0));
-    gl.uniform1i(displayMaterial.uniforms.uTexture, dye.read.attach(0));
+    if (config.SHADING) displayMaterial.uniforms.texelSize.assign(1.0 / width, 1.0 / height);
+    displayMaterial.uniforms.uTexture.assign(dye.read.attach(0));
+    // displayMaterial.uniforms.uTexture.assign(velocity.read.attach(0));
     if (config.BLOOM) {
-        gl.uniform1i(displayMaterial.uniforms.uBloom, bloom.attach(1));
-        gl.uniform1i(displayMaterial.uniforms.uDithering, ditheringTexture.attach(2));
+        displayMaterial.uniforms.uBloom.assign(bloom.attach(1));
+        displayMaterial.uniforms.uDithering.assign(ditheringTexture.attach(2));
         let scale = getTextureScale(ditheringTexture, width, height);
-        gl.uniform2f(displayMaterial.uniforms.ditherScale, scale.x, scale.y);
+        displayMaterial.uniforms.ditherScale.assign(scale.x, scale.y);
     }
-    if (config.SUNRAYS) gl.uniform1i(displayMaterial.uniforms.uSunrays, sunrays.attach(3));
     // TODO: Adjust splat for display offset
-    gl.uniform2f(displayMaterial.uniforms.objectPosition, 0, 0.1);
-    generateBuffer(null);
+    if (config.SUNRAYS) displayMaterial.uniforms.uSunrays.assign(sunrays.attach(3));
+    displayMaterial.uniforms.objectPosition.assign(0, 0.1);
+    generateBuffer();
 }
 
 export function createTextureAsync(url: string): TextureObject {

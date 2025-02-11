@@ -1,10 +1,9 @@
 import { gl, ext, getResolution } from "./webgl";
-import { createDoubleFBO, DoubleFramebufferObject, resizeDoubleFBO } from "./double_fbo";
-import { createFBO, FramebufferObject } from "./fbo";
+import { DoubleFramebufferObject } from "./double_fbo";
+import { FramebufferObject } from "./fbo";
 import { config } from "./config";
 import { compileShader, baseVertexShader } from "./shaders";
 import { Program } from "./program";
-import { generateBuffer } from "./display";
 
 import { default as clearFragmentShaderCode } from "./shaders/clear.frag";
 import { default as advectionFragmentShaderCode } from "./shaders/advection.frag";
@@ -55,14 +54,18 @@ export function initFluidFramebuffers() {
     gl.disable(gl.BLEND);
 
     if (dye == null)
-        dye = createDoubleFBO(dyeRes.width, dyeRes.height, rgba.internalFormat, rgba.format, texType, filtering);
-    else dye = resizeDoubleFBO(dye, dyeRes.width, dyeRes.height, rgba.internalFormat, rgba.format, texType, filtering);
+        dye = new DoubleFramebufferObject(
+            dyeRes.width,
+            dyeRes.height,
+            rgba.internalFormat,
+            rgba.format,
+            texType,
+            filtering,
+        );
+    else dye = dye.resize(dyeRes.width, dyeRes.height, rgba.internalFormat, rgba.format, texType, filtering);
 
     if (velocity == null)
-        velocity = createDoubleFBO(simRes.width, simRes.height, rg.internalFormat, rg.format, texType, filtering);
-    else
-        velocity = resizeDoubleFBO(
-            velocity,
+        velocity = new DoubleFramebufferObject(
             simRes.width,
             simRes.height,
             rg.internalFormat,
@@ -70,73 +73,80 @@ export function initFluidFramebuffers() {
             texType,
             filtering,
         );
+    else velocity = velocity.resize(simRes.width, simRes.height, rg.internalFormat, rg.format, texType, filtering);
 
-    divergence = createFBO(simRes.width, simRes.height, r.internalFormat, r.format, texType, gl.NEAREST);
-    curl = createFBO(simRes.width, simRes.height, r.internalFormat, r.format, texType, gl.NEAREST);
-    pressure = createDoubleFBO(simRes.width, simRes.height, r.internalFormat, r.format, texType, gl.NEAREST);
+    divergence = new FramebufferObject(simRes.width, simRes.height, r.internalFormat, r.format, texType, gl.NEAREST);
+    curl = new FramebufferObject(simRes.width, simRes.height, r.internalFormat, r.format, texType, gl.NEAREST);
+    pressure = new DoubleFramebufferObject(
+        simRes.width,
+        simRes.height,
+        r.internalFormat,
+        r.format,
+        texType,
+        gl.NEAREST,
+    );
 }
 
 export function step(dt: number) {
     gl.disable(gl.BLEND);
 
     curlProgram.bind();
-    gl.uniform2f(curlProgram.uniforms.texelSize, velocity.texelSizeX, velocity.texelSizeY);
-    gl.uniform1i(curlProgram.uniforms.uVelocity, velocity.read.attach(0));
-    generateBuffer(curl);
+    curlProgram.uniforms.texelSize.assign(velocity.texelSizeX, velocity.texelSizeY);
+    curlProgram.uniforms.uVelocity.assign(velocity.read.attach(0));
+    curl.generateBuffer();
 
     vorticityProgram.bind();
-    gl.uniform2f(vorticityProgram.uniforms.texelSize, velocity.texelSizeX, velocity.texelSizeY);
-    gl.uniform1i(vorticityProgram.uniforms.uVelocity, velocity.read.attach(0));
-    gl.uniform1i(vorticityProgram.uniforms.uCurl, curl.attach(1));
-    gl.uniform1f(vorticityProgram.uniforms.curl, config.CURL);
-    gl.uniform1f(vorticityProgram.uniforms.dt, dt);
-    generateBuffer(velocity.write);
+    vorticityProgram.uniforms.texelSize.assign(velocity.texelSizeX, velocity.texelSizeY);
+    vorticityProgram.uniforms.uVelocity.assign(velocity.read.attach(0));
+    vorticityProgram.uniforms.uCurl.assign(curl.attach(1));
+    vorticityProgram.uniforms.curl.assign(config.CURL);
+    vorticityProgram.uniforms.dt.assign(dt);
+    velocity.generateBuffer();
     velocity.swap();
 
     divergenceProgram.bind();
-    gl.uniform2f(divergenceProgram.uniforms.texelSize, velocity.texelSizeX, velocity.texelSizeY);
-    gl.uniform1i(divergenceProgram.uniforms.uVelocity, velocity.read.attach(0));
-    generateBuffer(divergence);
+    divergenceProgram.uniforms.texelSize.assign(velocity.texelSizeX, velocity.texelSizeY);
+    divergenceProgram.uniforms.uVelocity.assign(velocity.read.attach(0));
+    divergence.generateBuffer();
 
     clearProgram.bind();
-    gl.uniform1i(clearProgram.uniforms.uTexture, pressure.read.attach(0));
-    gl.uniform1f(clearProgram.uniforms.value, config.PRESSURE);
-    generateBuffer(pressure.write);
+    clearProgram.uniforms.uTexture.assign(pressure.read.attach(0));
+    clearProgram.uniforms.value.assign(config.PRESSURE);
+    pressure.generateBuffer();
     pressure.swap();
 
     pressureProgram.bind();
-    gl.uniform2f(pressureProgram.uniforms.texelSize, velocity.texelSizeX, velocity.texelSizeY);
-    gl.uniform1i(pressureProgram.uniforms.uDivergence, divergence.attach(0));
+    pressureProgram.uniforms.texelSize.assign(velocity.texelSizeX, velocity.texelSizeY);
+    pressureProgram.uniforms.uDivergence.assign(divergence.attach(0));
     for (let i = 0; i < config.PRESSURE_ITERATIONS; i++) {
-        gl.uniform1i(pressureProgram.uniforms.uPressure, pressure.read.attach(1));
-        generateBuffer(pressure.write);
+        pressureProgram.uniforms.uPressure.assign(pressure.read.attach(1));
+        pressure.generateBuffer();
         pressure.swap();
     }
 
     gradienSubtractProgram.bind();
-    gl.uniform2f(gradienSubtractProgram.uniforms.texelSize, velocity.texelSizeX, velocity.texelSizeY);
-    gl.uniform1i(gradienSubtractProgram.uniforms.uPressure, pressure.read.attach(0));
-    gl.uniform1i(gradienSubtractProgram.uniforms.uVelocity, velocity.read.attach(1));
-    generateBuffer(velocity.write);
+    gradienSubtractProgram.uniforms.texelSize.assign(velocity.texelSizeX, velocity.texelSizeY);
+    gradienSubtractProgram.uniforms.uPressure.assign(pressure.read.attach(0));
+    gradienSubtractProgram.uniforms.uVelocity.assign(velocity.read.attach(1));
+    velocity.generateBuffer();
     velocity.swap();
 
     advectionProgram.bind();
-    gl.uniform2f(advectionProgram.uniforms.texelSize, velocity.texelSizeX, velocity.texelSizeY);
+    advectionProgram.uniforms.texelSize.assign(velocity.texelSizeX, velocity.texelSizeY);
     if (!ext.supportLinearFiltering)
-        gl.uniform2f(advectionProgram.uniforms.dyeTexelSize, velocity.texelSizeX, velocity.texelSizeY);
+        advectionProgram.uniforms.dyeTexelSize.assign(velocity.texelSizeX, velocity.texelSizeY);
     let velocityId = velocity.read.attach(0);
-    gl.uniform1i(advectionProgram.uniforms.uVelocity, velocityId);
-    gl.uniform1i(advectionProgram.uniforms.uSource, velocityId);
-    gl.uniform1f(advectionProgram.uniforms.dt, dt);
-    gl.uniform1f(advectionProgram.uniforms.dissipation, config.VELOCITY_DISSIPATION);
-    generateBuffer(velocity.write);
+    advectionProgram.uniforms.uVelocity.assign(velocityId);
+    advectionProgram.uniforms.uSource.assign(velocityId);
+    advectionProgram.uniforms.dt.assign(dt);
+    advectionProgram.uniforms.dissipation.assign(config.VELOCITY_DISSIPATION);
+    velocity.generateBuffer();
     velocity.swap();
 
-    if (!ext.supportLinearFiltering)
-        gl.uniform2f(advectionProgram.uniforms.dyeTexelSize, dye.texelSizeX, dye.texelSizeY);
-    gl.uniform1i(advectionProgram.uniforms.uVelocity, velocity.read.attach(0));
-    gl.uniform1i(advectionProgram.uniforms.uSource, dye.read.attach(1));
-    gl.uniform1f(advectionProgram.uniforms.dissipation, config.DENSITY_DISSIPATION);
-    generateBuffer(dye.write);
+    if (!ext.supportLinearFiltering) advectionProgram.uniforms.dyeTexelSize.assign(dye.texelSizeX, dye.texelSizeY);
+    advectionProgram.uniforms.uVelocity.assign(velocity.read.attach(0));
+    advectionProgram.uniforms.uSource.assign(dye.read.attach(1));
+    advectionProgram.uniforms.dissipation.assign(config.DENSITY_DISSIPATION);
+    dye.generateBuffer();
     dye.swap();
 }

@@ -1,7 +1,6 @@
 import { canvas, gl } from "./webgl";
 import { baseVertexShader, compileShader } from "./shaders";
 import { Program } from "./program";
-import { generateBuffer } from "./display";
 import { generateColor, RgbColor } from "./color";
 import { dye, velocity } from "./fluid";
 import { config } from "./config";
@@ -35,17 +34,17 @@ export function multipleSplats(amount: number) {
 
 export function splat(x: number, y: number, dx: number, dy: number, color: RgbColor) {
     splatProgram.bind();
-    gl.uniform1i(splatProgram.uniforms.uTarget, velocity.read.attach(0));
-    gl.uniform1f(splatProgram.uniforms.aspectRatio, canvas.width / canvas.height);
-    gl.uniform2f(splatProgram.uniforms.point, x, y);
-    gl.uniform3f(splatProgram.uniforms.color, dx, dy, 0.0);
-    gl.uniform1f(splatProgram.uniforms.radius, correctRadius(config.SPLAT_RADIUS / 100.0));
-    generateBuffer(velocity.write);
+    splatProgram.uniforms.uTarget.assign(velocity.read.attach(0));
+    splatProgram.uniforms.aspectRatio.assign(canvas.width / canvas.height);
+    splatProgram.uniforms.point.assign(x, y);
+    splatProgram.uniforms.color.assign(dx, dy, 0.0);
+    splatProgram.uniforms.radius.assign(correctRadius(config.SPLAT_RADIUS / 100.0));
+    velocity.generateBuffer();
     velocity.swap();
 
-    gl.uniform1i(splatProgram.uniforms.uTarget, dye.read.attach(0));
-    gl.uniform3f(splatProgram.uniforms.color, color.r, color.g, color.b);
-    generateBuffer(dye.write);
+    splatProgram.uniforms.uTarget.assign(dye.read.attach(0));
+    splatProgram.uniforms.color.assign(color.r, color.g, color.b);
+    dye.generateBuffer();
     dye.swap();
 }
 
