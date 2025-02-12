@@ -205,21 +205,23 @@ function drawTexture() {
     deltaY += 0.00005;
 
     textureProgram.bind();
-    textureProgram.uniforms.uTexture.assign(dyeTexture!.attach(0));
-    textureProgram.uniforms.uTarget.assign(dye.read.attach(1));
-    textureProgram.uniforms.vDelta.assign(0.0, deltaY);
-    textureProgram.uniforms.offset.assign(0);
-    textureProgram.uniforms.factor.assign(1);
-    dye.generateBuffer();
+    textureProgram.invoke(dye, {
+        uTexture: [dyeTexture!.attach(0)],
+        uTarget: [dye.read.attach(1)],
+        vDelta: [0.0, deltaY],
+        offset: [0],
+        factor: [1],
+    });
     dye.swap();
 
     textureProgram.bind();
-    textureProgram.uniforms.uTexture.assign(flowTexture!.attach(0));
-    textureProgram.uniforms.uTarget.assign(velocity.read.attach(1));
-    textureProgram.uniforms.vDelta.assign(0.0, deltaY);
-    textureProgram.uniforms.offset.assign(0.5);
-    textureProgram.uniforms.factor.assign(300.0);
-    velocity.generateBuffer();
+    textureProgram.invoke(velocity, {
+        uTexture: [flowTexture!.attach(0)],
+        uTarget: [velocity.read.attach(1)],
+        vDelta: [0.0, deltaY],
+        offset: [0.5],
+        factor: [300.0],
+    });
     velocity.swap();
 }
 
@@ -230,8 +232,14 @@ function drawColor(color: RgbColor) {
 
 function drawCheckerboard() {
     checkerboardProgram.bind();
-    checkerboardProgram.uniforms.aspectRatio.assign(canvas.width / canvas.height);
-    generateBuffer();
+    checkerboardProgram.invoke(
+        {
+            generateBuffer: generateBuffer,
+        },
+        {
+            aspectRatio: [canvas.width / canvas.height],
+        },
+    );
 }
 
 function normalizeColor(input: RgbColor): RgbColor {

@@ -91,62 +91,71 @@ export function step(dt: number) {
     gl.disable(gl.BLEND);
 
     curlProgram.bind();
-    curlProgram.uniforms.texelSize.assign(velocity.texelSizeX, velocity.texelSizeY);
-    curlProgram.uniforms.uVelocity.assign(velocity.read.attach(0));
-    curl.generateBuffer();
+    curlProgram.invoke(curl, {
+        texelSize: [velocity.texelSizeX, velocity.texelSizeY],
+        uVelocity: [velocity.read.attach(0)],
+    });
 
     vorticityProgram.bind();
-    vorticityProgram.uniforms.texelSize.assign(velocity.texelSizeX, velocity.texelSizeY);
-    vorticityProgram.uniforms.uVelocity.assign(velocity.read.attach(0));
-    vorticityProgram.uniforms.uCurl.assign(curl.attach(1));
-    vorticityProgram.uniforms.curl.assign(config.CURL);
-    vorticityProgram.uniforms.dt.assign(dt);
-    velocity.generateBuffer();
+    vorticityProgram.invoke(velocity, {
+        texelSize: [velocity.texelSizeX, velocity.texelSizeY],
+        uVelocity: [velocity.read.attach(0)],
+        uCurl: [curl.attach(1)],
+        curl: [config.CURL],
+        dt: [dt],
+    });
     velocity.swap();
 
     divergenceProgram.bind();
-    divergenceProgram.uniforms.texelSize.assign(velocity.texelSizeX, velocity.texelSizeY);
-    divergenceProgram.uniforms.uVelocity.assign(velocity.read.attach(0));
-    divergence.generateBuffer();
+    divergenceProgram.invoke(divergence, {
+        texelSize: [velocity.texelSizeX, velocity.texelSizeY],
+        uVelocity: [velocity.read.attach(0)],
+    });
 
     clearProgram.bind();
-    clearProgram.uniforms.uTexture.assign(pressure.read.attach(0));
-    clearProgram.uniforms.value.assign(config.PRESSURE);
-    pressure.generateBuffer();
+    clearProgram.invoke(pressure, {
+        uTexture: [pressure.read.attach(0)],
+        value: [config.PRESSURE],
+    });
     pressure.swap();
 
     pressureProgram.bind();
-    pressureProgram.uniforms.texelSize.assign(velocity.texelSizeX, velocity.texelSizeY);
-    pressureProgram.uniforms.uDivergence.assign(divergence.attach(0));
     for (let i = 0; i < config.PRESSURE_ITERATIONS; i++) {
-        pressureProgram.uniforms.uPressure.assign(pressure.read.attach(1));
-        pressure.generateBuffer();
+        pressureProgram.invoke(pressure, {
+            texelSize: [velocity.texelSizeX, velocity.texelSizeY],
+            uDivergence: [divergence.attach(0)],
+            uPressure: [pressure.read.attach(1)],
+        });
         pressure.swap();
     }
 
     gradienSubtractProgram.bind();
-    gradienSubtractProgram.uniforms.texelSize.assign(velocity.texelSizeX, velocity.texelSizeY);
-    gradienSubtractProgram.uniforms.uPressure.assign(pressure.read.attach(0));
-    gradienSubtractProgram.uniforms.uVelocity.assign(velocity.read.attach(1));
-    velocity.generateBuffer();
+    gradienSubtractProgram.invoke(velocity, {
+        texelSize: [velocity.texelSizeX, velocity.texelSizeY],
+        uPressure: [pressure.read.attach(0)],
+        uVelocity: [velocity.read.attach(1)],
+    });
     velocity.swap();
 
+    let advectionArgs = {
+        texelSize: [velocity.texelSizeX, velocity.texelSizeY],
+        uVelocity: [velocity.read.attach(0)],
+        dt: [dt],
+        dissipation: [config.VELOCITY_DISSIPATION],
+    };
+    if (!ext.supportLinearFiltering) {
+        advectionArgs.dyeTexelSize = [velocity.texelSizeX, velocity.texelSizeY];
+    }
     advectionProgram.bind();
-    advectionProgram.uniforms.texelSize.assign(velocity.texelSizeX, velocity.texelSizeY);
-    if (!ext.supportLinearFiltering)
-        advectionProgram.uniforms.dyeTexelSize.assign(velocity.texelSizeX, velocity.texelSizeY);
-    let velocityId = velocity.read.attach(0);
-    advectionProgram.uniforms.uVelocity.assign(velocityId);
-    advectionProgram.uniforms.uSource.assign(velocityId);
-    advectionProgram.uniforms.dt.assign(dt);
-    advectionProgram.uniforms.dissipation.assign(config.VELOCITY_DISSIPATION);
-    velocity.generateBuffer();
+    advectionProgram.invoke(velocity, {
+        ...advectionArgs,
+        uSource: [velocity.read.attach(0)],
+    });
     velocity.swap();
 
-    if (!ext.supportLinearFiltering) advectionProgram.uniforms.dyeTexelSize.assign(dye.texelSizeX, dye.texelSizeY);
-    advectionProgram.uniforms.uVelocity.assign(velocity.read.attach(0));
-    advectionProgram.uniforms.uSource.assign(dye.read.attach(1));
-    advectionProgram.uniforms.dissipation.assign(config.DENSITY_DISSIPATION);
-    dye.generateBuffer();
+    advectionProgram.invoke(dye, {
+        ...advectionArgs,
+        uSource: [dye.read.attach(1)],
+    });
     dye.swap();
 }

@@ -33,18 +33,24 @@ export function multipleSplats(amount: number) {
 }
 
 export function splat(x: number, y: number, dx: number, dy: number, color: RgbColor) {
+    const aspectRatio = canvas.width / canvas.height;
+    const radius = correctRadius(config.SPLAT_RADIUS / 100.0);
+
     splatProgram.bind();
-    splatProgram.uniforms.uTarget.assign(velocity.read.attach(0));
-    splatProgram.uniforms.aspectRatio.assign(canvas.width / canvas.height);
-    splatProgram.uniforms.point.assign(x, y);
-    splatProgram.uniforms.color.assign(dx, dy, 0.0);
-    splatProgram.uniforms.radius.assign(correctRadius(config.SPLAT_RADIUS / 100.0));
-    velocity.generateBuffer();
+    splatProgram.invoke(velocity, {
+        uTarget: [velocity.read.attach(0)],
+        aspectRatio: [aspectRatio],
+        point: [x, y],
+        color: [dx, dy, 0.0],
+        radius: [radius],
+    });
     velocity.swap();
 
-    splatProgram.uniforms.uTarget.assign(dye.read.attach(0));
-    splatProgram.uniforms.color.assign(color.r, color.g, color.b);
-    dye.generateBuffer();
+    splatProgram.bind();
+    splatProgram.invoke(dye, {
+        uTarget: [dye.read.attach(0)],
+        color: [color.r, color.g, color.b],
+    });
     dye.swap();
 }
 

@@ -38,13 +38,10 @@ export function initSunraysFramebuffers() {
 export function applySunrays(source: FramebufferObject, mask: FramebufferObject, destination: FramebufferObject) {
     gl.disable(gl.BLEND);
     sunraysMaskProgram.bind();
-    sunraysMaskProgram.uniforms.uTexture.assign(source.attach(0));
-    mask.generateBuffer();
+    sunraysMaskProgram.invoke(mask, { uTexture: [source.attach(0)] });
 
     sunraysProgram.bind();
-    sunraysProgram.uniforms.weight.assign(config.SUNRAYS_WEIGHT);
-    sunraysProgram.uniforms.uTexture.assign(mask.attach(0));
-    destination.generateBuffer();
+    sunraysProgram.invoke(destination, { weight: [config.SUNRAYS_WEIGHT], uTexture: [mask.attach(0)] });
 
     blur(destination, sunraysTemp, 1);
 }
@@ -52,12 +49,8 @@ export function applySunrays(source: FramebufferObject, mask: FramebufferObject,
 function blur(target: FramebufferObject, temp: FramebufferObject, iterations: number) {
     blurProgram.bind();
     for (let i = 0; i < iterations; i++) {
-        blurProgram.uniforms.texelSize.assign(target.texelSizeX, 0.0);
-        blurProgram.uniforms.uTexture.assign(target.attach(0));
-        temp.generateBuffer();
+        blurProgram.invoke(temp, { texelSize: [target.texelSizeX, 0.0], uTexture: [target.attach(0)] });
 
-        blurProgram.uniforms.texelSize.assign(0.0, target.texelSizeY);
-        blurProgram.uniforms.uTexture.assign(temp.attach(0));
-        target.generateBuffer();
+        blurProgram.invoke(target, { texelSize: [0.0, target.texelSizeY], uTexture: [temp.attach(0)] });
     }
 }

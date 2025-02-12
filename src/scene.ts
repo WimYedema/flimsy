@@ -53,6 +53,9 @@ class GlObject {
         public length: number,
     ) {}
 
+    generateBuffer() {
+        this.draw();
+    }
     draw(): void {
         gl.drawElements(gl.TRIANGLES, this.length, gl.UNSIGNED_SHORT, this.index);
     }

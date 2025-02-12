@@ -42,10 +42,11 @@ export function initParticles() {
 export function updateParticles(dt: number) {
     gl.disable(gl.BLEND);
     particleUpdateProgram.bind();
-    particleUpdateProgram.uniforms.uParticles.assign(particles.read.attach(0));
-    particleUpdateProgram.uniforms.uVelocity.assign(velocity.read.attach(1));
-    particleUpdateProgram.uniforms.uDeltaTime.assign(dt);
-    particles.generateBuffer();
+    particleUpdateProgram.invoke(particles, {
+        uParticles: [particles.read.attach(0)],
+        uVelocity: [velocity.read.attach(1)],
+        uDeltaTime: [dt],
+    });
     particles.swap();
 }
 
@@ -54,10 +55,11 @@ function drawParticle(index: number) {
     if (!spec) return;
     let color = { r: spec.color[0], g: spec.color[1], b: spec.color[2] };
     particleProgram.bind();
-    particleProgram.uniforms.color.assign(color.r, color.g, color.b, 1);
-    particleProgram.uniforms.particleIndex.assign(index / scene.entities.particle.length);
-    particleProgram.uniforms.uParticles.assign(particles.read.attach(0));
-    scene.objects.particle.draw();
+    particleProgram.invoke(scene.objects.particle, {
+        color: [color.r, color.g, color.b, 1],
+        particleIndex: [index / scene.entities.particle.length],
+        uParticles: [particles.read.attach(0)],
+    });
 }
 
 export function drawParticles() {
