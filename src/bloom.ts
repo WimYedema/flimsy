@@ -50,17 +50,19 @@ export function applyBloom(source: FramebufferObject, destination: FramebufferOb
     let curve0 = config.BLOOM_THRESHOLD - knee;
     let curve1 = knee * 2;
     let curve2 = 0.25 / knee;
-    bloomPrefilterProgram.uniforms.curve.assign(curve0, curve1, curve2);
-    bloomPrefilterProgram.uniforms.threshold.assign(config.BLOOM_THRESHOLD);
-    bloomPrefilterProgram.uniforms.uTexture.assign(source.attach(0));
-    last.generateBuffer();
+    bloomPrefilterProgram.invoke(last, {
+        curve: [curve0, curve1, curve2],
+        threshold: [config.BLOOM_THRESHOLD],
+        uTexture: [source.attach(0)],
+    });
 
     bloomBlurProgram.bind();
     for (let i = 0; i < bloomFramebuffers.length; i++) {
         let dest = bloomFramebuffers[i];
-        bloomBlurProgram.uniforms.texelSize.assign(last.texelSizeX, last.texelSizeY);
-        bloomBlurProgram.uniforms.uTexture.assign(last.attach(0));
-        dest.generateBuffer();
+        bloomBlurProgram.invoke(dest, {
+            texelSize: [last.texelSizeX, last.texelSizeY],
+            uTexture: [last.attach(0)],
+        });
         last = dest;
     }
 
@@ -69,17 +71,18 @@ export function applyBloom(source: FramebufferObject, destination: FramebufferOb
 
     for (let i = bloomFramebuffers.length - 2; i >= 0; i--) {
         let baseTex = bloomFramebuffers[i];
-        bloomBlurProgram.uniforms.texelSize.assign(last.texelSizeX, last.texelSizeY);
-        bloomBlurProgram.uniforms.uTexture.assign(last.attach(0));
-        gl.viewport(0, 0, baseTex.width, baseTex.height);
-        baseTex.generateBuffer();
+        bloomBlurProgram.invoke(baseTex, {
+            texelSize: [last.texelSizeX, last.texelSizeY],
+            uTexture: [last.attach(0)],
+        });
         last = baseTex;
     }
 
     gl.disable(gl.BLEND);
     bloomFinalProgram.bind();
-    bloomFinalProgram.uniforms.texelSize.assign(last.texelSizeX, last.texelSizeY);
-    bloomFinalProgram.uniforms.uTexture.assign(last.attach(0));
-    bloomFinalProgram.uniforms.intensity.assign(config.BLOOM_INTENSITY);
-    destination.generateBuffer();
+    bloomFinalProgram.invoke(destination, {
+        texelSize: [last.texelSizeX, last.texelSizeY],
+        uTexture: [last.attach(0)],
+        intensity: [config.BLOOM_INTENSITY],
+    });
 }

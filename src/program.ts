@@ -74,6 +74,10 @@ export interface Uniforms {
     [key: string]: Uniform;
 }
 
+export interface Framebuffer {
+    generateBuffer(): void;
+}
+
 export class Program {
     program: WebGLProgram;
     uniforms: Uniforms;
@@ -90,6 +94,17 @@ export class Program {
 
     bind() {
         gl.useProgram(this.program);
+    }
+
+    invoke(framebuffer: Framebuffer, uniformAssignments: { [key: string]: any[] }) {
+        for (const [name, values] of Object.entries(uniformAssignments)) {
+            if (this.uniforms[name]) {
+                this.uniforms[name].assign(...values);
+            } else {
+                throw `${this.name}: Uniform ${name} not found`;
+            }
+        }
+        framebuffer.generateBuffer();
     }
 }
 
