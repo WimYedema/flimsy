@@ -1,6 +1,9 @@
 import { gl } from "./webgl";
+import { compileShader } from "./shaders";
 
 type UniformFunction = (location: WebGLUniformLocation, ...values: any[]) => void;
+
+const POSITION_ATTRIBUTE_LOCATION = 0;
 
 const uniformFunctions: { [key: number]: { [key: number]: UniformFunction } } = {
     [gl.FLOAT]: {
@@ -75,7 +78,7 @@ export interface Uniforms {
 }
 
 export interface Framebuffer {
-    generateBuffer(): void;
+    applyProgram(): void;
 }
 
 export class Program {
@@ -104,7 +107,12 @@ export class Program {
                 throw `${this.name}: Uniform ${name} not found`;
             }
         }
-        framebuffer.generateBuffer();
+        framebuffer.applyProgram();
+    }
+
+    static initRendering() {
+        gl.vertexAttribPointer(POSITION_ATTRIBUTE_LOCATION, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(POSITION_ATTRIBUTE_LOCATION);
     }
 }
 
@@ -115,6 +123,9 @@ export function createProgram(vertexShader: WebGLShader, fragmentShader: WebGLSh
     }
     gl.attachShader(program, vertexShader);
     gl.attachShader(program, fragmentShader);
+    // Bind attribute location before linking the program
+    gl.bindAttribLocation(program, POSITION_ATTRIBUTE_LOCATION, "aPosition");
+
     gl.linkProgram(program);
 
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) console.trace(gl.getProgramInfoLog(program));
@@ -134,4 +145,13 @@ export function getUniforms(program: WebGLProgram): Uniforms {
         uniforms[uniformName] = new Uniform(gl.getUniformLocation(program, uniformName), activeUniform);
     }
     return uniforms;
+}
+
+export function createProgramWithKeywords(
+    vertexShader: WebGLShader,
+    fragmentShaderSource: string,
+    keywords: string[],
+): Program {
+    let fragmentShader = compileShader(gl.FRAGMENT_SHADER, fragmentShaderSource, keywords);
+    return new Program(vertexShader, fragmentShader);
 }

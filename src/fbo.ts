@@ -56,7 +56,7 @@ export class FramebufferObject {
         return id;
     }
 
-    generateBuffer() {
+    applyProgram() {
         gl.viewport(0, 0, this.width, this.height);
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo);
         // The use of the display object is a bit of a hack, but it works
@@ -71,7 +71,7 @@ export class FramebufferObject {
         if (mode == "copy") {
             copyProgram.bind();
             copyProgram.uniforms.uTexture.assign(this.attach(0));
-            newFBO.generateBuffer();
+            newFBO.applyProgram();
         }
         return newFBO;
     }

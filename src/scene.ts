@@ -53,7 +53,7 @@ class GlObject {
         public length: number,
     ) {}
 
-    generateBuffer() {
+    applyProgram() {
         this.draw();
     }
     draw(): void {
@@ -88,6 +88,7 @@ export class Scene {
             this.entities[entitySpec.entity] = [...this.entities[entitySpec.entity], ...entitySpec.objects];
         }
     }
+
     bind(): void {
         gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
         gl.bufferData(gl.ARRAY_BUFFER, this.vertices, gl.STATIC_DRAW);

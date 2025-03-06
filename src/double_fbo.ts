@@ -42,8 +42,8 @@ export class DoubleFramebufferObject {
         this.fbo2 = temp;
     }
 
-    generateBuffer() {
-        this.write.generateBuffer();
+    applyProgram() {
+        this.write.applyProgram();
     }
 
     resize(w: number, h: number): DoubleFramebufferObject {

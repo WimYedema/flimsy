@@ -1,39 +1,26 @@
 import { gl } from "./webgl";
 import { baseVertexShader } from "./shaders";
-import { Material } from "./material";
+import { createProgramWithKeywords } from "./program";
 import { bloom } from "./bloom";
 import { dye, velocity } from "./fluid";
 import { sunrays } from "./sunrays";
 import { config } from "./config";
 
 import { default as displayFragmentShaderCode } from "./shaders/display.frag";
-import { FramebufferObject } from "./fbo";
 import { scene } from "./scene_manager";
+import { Program } from "./program";
 
 const displayShaderSource = displayFragmentShaderCode;
 
 let ditheringTexture = createTextureAsync("LDR_LLL1_0.png");
 
-const displayMaterial = new Material(baseVertexShader, displayShaderSource);
+export let displayProgram: Program | null = null;
 
 export interface TextureObject {
     texture: WebGLTexture;
     width: number;
     height: number;
     attach: (id: number) => number;
-}
-
-export function initDisplay() {
-    // Render a rectangle on which we will display the fluid simulation
-    scene.bind();
-
-    if (displayMaterial.activeProgram === null) {
-        throw "displayMaterial not activated";
-    }
-    const positionLocation = gl.getAttribLocation(displayMaterial.activeProgram, "aPosition");
-    console.log("aPosition", positionLocation);
-    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(positionLocation);
 }
 
 export function generateBuffer(clear = false) {
@@ -58,26 +45,30 @@ export function updateKeywords() {
     if (config.SHADING) displayKeywords.push("SHADING");
     if (config.BLOOM) displayKeywords.push("BLOOM");
     if (config.SUNRAYS) displayKeywords.push("SUNRAYS");
-    displayMaterial.setKeywords(displayKeywords);
+    displayProgram = createProgramWithKeywords(baseVertexShader, displayShaderSource, displayKeywords);
+    // displayMaterial.setKeywords(displayKeywords);
 }
 
 export function drawDisplay() {
     let width = gl.drawingBufferWidth;
     let height = gl.drawingBufferHeight;
 
-    displayMaterial.bind();
-    if (config.SHADING) displayMaterial.uniforms.texelSize.assign(1.0 / width, 1.0 / height);
-    displayMaterial.uniforms.uTexture.assign(dye.read.attach(0));
-    // displayMaterial.uniforms.uTexture.assign(velocity.read.attach(0));
+    if (displayProgram === null) {
+        throw "Display program not initialized";
+    }
+    displayProgram.bind();
+    if (config.SHADING) displayProgram.uniforms.texelSize.assign(1.0 / width, 1.0 / height);
+    displayProgram.uniforms.uTexture.assign(dye.read.attach(0));
+    // displayProgram.uniforms.uTexture.assign(velocity.read.attach(0));
     if (config.BLOOM) {
-        displayMaterial.uniforms.uBloom.assign(bloom.attach(1));
-        displayMaterial.uniforms.uDithering.assign(ditheringTexture.attach(2));
+        displayProgram.uniforms.uBloom.assign(bloom.attach(1));
+        displayProgram.uniforms.uDithering.assign(ditheringTexture.attach(2));
         let scale = getTextureScale(ditheringTexture, width, height);
-        displayMaterial.uniforms.ditherScale.assign(scale.x, scale.y);
+        displayProgram.uniforms.ditherScale.assign(scale.x, scale.y);
     }
     // TODO: Adjust splat for display offset
-    if (config.SUNRAYS) displayMaterial.uniforms.uSunrays.assign(sunrays.attach(3));
-    displayMaterial.uniforms.objectPosition.assign(0, 0.1);
+    if (config.SUNRAYS) displayProgram.uniforms.uSunrays.assign(sunrays.attach(3));
+    displayProgram.uniforms.objectPosition.assign(0, 0.1);
     generateBuffer();
 }
 

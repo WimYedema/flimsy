@@ -35,7 +35,7 @@ import { baseVertexShader, compileShader } from "./shaders";
 
 import { canvas, gl, ext, resizeCanvas } from "./webgl";
 import { Program } from "./program";
-import { generateBuffer, updateKeywords, drawDisplay, initDisplay, createTextureAsync } from "./display";
+import { generateBuffer, updateKeywords, drawDisplay, displayMaterial, createTextureAsync } from "./display";
 
 import { initBloomFramebuffers, applyBloom, bloom } from "./bloom";
 import { initSunraysFramebuffers, applySunrays, sunrays } from "./sunrays";
@@ -46,6 +46,7 @@ import { bindColor, generateColor, RgbColor } from "./color";
 import { pointers } from "./canvas";
 import { TextureObject } from "./display";
 import { drawParticles, initParticles, updateParticles } from "./particle";
+import { scene } from "./scene_manager";
 
 // Simulation section
 
@@ -128,7 +129,8 @@ function main() {
 
     startGUI();
     updateKeywords();
-    initDisplay();
+    scene.bind();
+    Program.initRendering();
     initParticles();
     initFramebuffers();
 
@@ -234,7 +236,7 @@ function drawCheckerboard() {
     checkerboardProgram.bind();
     checkerboardProgram.invoke(
         {
-            generateBuffer: generateBuffer,
+            applyProgram: generateBuffer,
         },
         {
             aspectRatio: [canvas.width / canvas.height],
